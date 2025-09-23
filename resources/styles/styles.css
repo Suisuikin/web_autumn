@@ -307,7 +307,7 @@ main {
     border-radius: 10px;
     box-shadow: 0 4px 10px 5px rgba(204, 200, 184, 0.25);
     position: relative;
-    min-height: 602px;
+    min-height: 600px;
 }
 
 .order-author-name {
