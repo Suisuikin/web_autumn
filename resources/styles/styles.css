@@ -149,7 +149,7 @@ main {
     min-width: 405px;
 }
 
-.author-card {
+.chrono-card {
     position: absolute;
     width: 100%;
     height: 100%;
@@ -160,7 +160,7 @@ main {
     overflow: hidden;
 }
 
-.author-card:hover {
+.chrono-card:hover {
     transform: translateY(-5px);
     box-shadow: 0 12px 25px 10px rgba(204, 200, 184, 0.6);
 }
@@ -670,7 +670,7 @@ header.shadow-element {
     border-radius: 0.5em;
 }
 
-.author-card.shadow-element {
+.chrono-card.shadow-element {
     border-radius: 0.5em;
 }
 
@@ -951,7 +951,7 @@ header.shadow-element {
 }
 
 @media (max-width: 768px) {
-    .author-card {
+    .chrono-card {
         flex-direction: column;
     }
 
