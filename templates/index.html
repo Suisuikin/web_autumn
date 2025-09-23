@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Frequency Archives</title>
+    <link rel="stylesheet" href="/resources/styles/styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+</head>
+<body>
+<div class="container">
+    <header class="shadow-element">
+        <a href="/">
+            <h1>Chrono Archives</h1>
+        </a>
+    </header>
+
+    <div class="search-container">
+        <form action="/" method="GET" class="search-form">
+            <div class="search-bar shadow-element">
+                <input type="text" name="query" placeholder="Введите название услуги" value="{{.query}}">
+            </div>
+            <div class="search-button shadow-element">
+                <button type="submit">Найти</button>
+            </div>
+            <div class="cart-button shadow-element">
+                <a href="/cart">
+                    <i class="fas fa-archive cart-icon"></i>
+                    {{if gt .cartCount 0}}
+                    <span class="cart-badge">{{.cartCount}}</span>
+                    {{end}}
+                </a>
+            </div>
+        </form>
+    </div>
+
+        <div class="authors-container">
+            {{if .orders}}
+                {{range .orders}}
+                    {{template "chrono.html" .}}
+                {{end}}
+            {{else}}
+                <div class="no-results">
+                    <p>По вашему запросу ничего не найдено</p>
+                </div>
+            {{end}}
+        </div>
+</div>
+
+
+</body>
+</html>

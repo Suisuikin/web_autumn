@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{.chrono.Name}} - Chrono Archives</title>
+    <link rel="stylesheet" href="/resources/styles/styles.css">
+</head>
+<body>
+<div class="container">
+    <header class="shadow-element">
+        <a href="/"><h1>Chrono Archives</h1></a>
+    </header>
+
+    <main>
+        <div class="service-title-center">
+            <h2>{{.chrono.Name}}</h2>
+        </div>
+        <div class="service-content">
+            <div class="service-image-container">
+                <img src="{{.chrono.MinioURL}}" alt="{{.chrono.Name}}" class="service-image shadow-element">
+            </div>
+            <div class="service-info">
+                <div class="service-description">
+                    <p>{{.chrono.ServiceDesc}}</p>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Составление заявки - Chrono Archives</title>
+    <link rel="stylesheet" href="/resources/styles/styles.css">
+</head>
+<body>
+<div class="container">
+    <header class="shadow-element">
+        <a href="/"><h1>Chrono Archives</h1></a>
+    </header>
+
+    <div class="order-form-new shadow-element">
+        <div class="order-form-layout">
+            <div class="order-form-left">
+                <div class="order-section">
+                    <h2 class="input-label">Исходный текст</h2>
+                    <div class="input-wrapper">
+                        <div class="input-field shadow-element" contenteditable="true" data-placeholder="Исходный текст"></div>
+                        <div class="upload-button shadow-element">
+                            <button>Загрузить текст</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="order-section">
+                    <h2 class="input-label">PDF отчет, таблица, графическая визуализация</h2>
+                    <div class="input-field shadow-element" contenteditable="true" data-placeholder="PDF отчет, таблица, графическая визуализация"></div>
+                </div>
+
+                <div class="dotted-separator"></div>
+
+                {{if eq (len .RandomServices) 2}}
+                <div class="order-random-services">
+                    {{with (index .RandomServices 0)}}
+                    <div class="order-service-card shadow-element">
+                        <img src="{{.MinioURL}}" alt="{{.Name}}">
+                        <div class="order-service-card-info">
+                            <h3>{{.Name}}</h3>
+                            <p>{{.ServiceDesc}}</p>
+                        </div>
+                    </div>
+                    {{end}}
+
+                    <div class="dotted-separator"></div>
+
+                    {{with (index .RandomServices 1)}}
+                    <div class="order-service-card shadow-element">
+                        <img src="{{.MinioURL}}" alt="{{.Name}}">
+                        <div class="order-service-card-info">
+                            <h3>{{.Name}}</h3>
+                            <p>{{.ServiceDesc}}</p>
+                        </div>
+                    </div>
+                    {{end}}
+                </div>
+                {{end}}
+
+                <div class="dotted-separator"></div>
+
+                <div class="order-section">
+                    <h2 class="input-label">Результат хронологической принадлежности</h2>
+                    <div class="input-field shadow-element" contenteditable="false" data-placeholder="Здесь появится результат">
+                        {{.ChronoResult}}
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>
