@@ -5,11 +5,9 @@
 }
 
 body {
-    font-family: 'Helvetica', 'Arial', sans-serif;
-    line-height: 1.6;
+    font-family: oxygen, sans-serif;
     background-color: #F0EDE3;
     color: #33290A;
-    padding: 0 20px 20px 20px;
 }
 
 .container {
@@ -648,6 +646,8 @@ main {
 .shadow-element {
     border-color: #DDDACF #CCC8B8 #BBB59F;
     box-shadow: 0 0.1em 0.3em #CCC8B8;
+    border-bottom-right-radius: 0.5em;
+    border-bottom-left-radius: 0.5em;
     border-style: solid;
     border-width: 1px;
 }
