@@ -1,9 +1,11 @@
 <div class="chrono-card-wrapper">
     <div class="chrono-card shadow-element">
-        <img src="{{.MinioURL}}" alt="{{.Name}}" class="chrono-card-image shadow-element">
+        <img alt="{{.Name}}" class="chrono-card-image shadow-element" src="{{.MinioURL}}">
+
         <div class="chrono-info">
             <h2>{{.Name}}</h2>
-            <a href="/chrono_service/{{.ID}}" class="details-button">Подробнее</a>
+            <p class="chrono-years">{{.FromYear}} — {{.ToYear}} гг.</p>
+            <a class="details-button" href="/chrono_details/{{.ID}}">Подробнее</a>
         </div>
     </div>
 </div>

@@ -2,14 +2,14 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
     <title>{{.chrono.Name}} - Chrono Archives</title>
-    <link rel="stylesheet" href="/resources/styles/styles.css">
+    <link href="/resources/styles/styles.css" rel="stylesheet">
 </head>
 <body>
 <div class="container">
     <header class="shadow-element">
-        <a href="/"><h1>Chrono Archives</h1></a>
+        <a href="/chrono"><h1>Chrono Archives</h1></a>
     </header>
 
     <main>
@@ -18,7 +18,7 @@
         </div>
         <div class="service-content">
             <div class="service-image-container">
-                <img src="{{.chrono.MinioURL}}" alt="{{.chrono.Name}}" class="service-image shadow-element">
+                <img alt="{{.chrono.Name}}" class="service-image shadow-element" src="{{.chrono.MinioURL}}">
             </div>
             <div class="service-info">
                 <div class="service-description">

@@ -11,75 +11,89 @@ const (
 )
 
 type Repository struct {
-	orders []Order
+	orders []ChronoIntervals
 }
 
-type Order struct {
+type ChronoIntervals struct {
 	ID          int
 	Name        string
 	ServiceDesc string
 	MinioURL    string
+	FromYear    int
+	ToYear      int
 }
 
 func NewRepository() (*Repository, error) {
-	orders := []Order{
+	chronoIntervals := []ChronoIntervals{
 		{
 			ID:          1,
-			Name:        "Выделение архаизмов и неологизмов",
-			ServiceDesc: "Поиск слов текста, которые имеют ранние (архаизмы) или поздние (неологизмы) интервалы дат в историческом словаре",
+			Name:        "Древнерусский слой",
+			ServiceDesc: "Церковнославянская и летописная лексика: «вещати», «чудо», «чадо», «рать». Без заимствований.",
 			MinioURL:    minioBaseURL + "/img.png",
+			FromYear:    1000,
+			ToYear:      1450,
 		},
 		{
 			ID:          2,
-			Name:        "Расчет временного интервала",
-			ServiceDesc: "Использование интервалов дат всех слов текста для вычисления вероятного периода написания: нижняя граница = самое раннее появление архаизмов, верхняя граница = самое позднее появление неологизмов",
+			Name:        "Раннесреднерусский слой",
+			ServiceDesc: "Смешение церковнославянской и народной речи. Первые полонизмы и кальки с латинизмов.",
 			MinioURL:    minioBaseURL + "/img_1.png",
+			FromYear:    1450,
+			ToYear:      1600,
 		},
 		{
 			ID:          3,
-			Name:        "Хронологическая карта слов",
-			ServiceDesc: "Составление списка всех слов с указанием их интервалов дат. Визуализация, какие слова старые, какие новые, и где их сосредоточение в тексте",
+			Name:        "Позднесреднерусский слой",
+			ServiceDesc: "Расширение бытовой лексики, редкие заимствования из Европы. Переходный период перед реформами Петра.",
 			MinioURL:    minioBaseURL + "/img_2.png",
+			FromYear:    1600,
+			ToYear:      1720,
 		},
 		{
 			ID:          4,
-			Name:        "Сравнительный анализ текстов",
-			ServiceDesc: "Сравнение текстов по распределению интервалов дат слов, выявление относительной древности или новизны",
+			Name:        "Петровский слой",
+			ServiceDesc: "Активное заимствование из западных языков, формирование современного литературного языка.",
 			MinioURL:    minioBaseURL + "/img_3.png",
+			FromYear:    1720,
+			ToYear:      1800,
 		},
 		{
 			ID:          5,
-			Name:        "Подбор слов для стилистики",
-			ServiceDesc: "На основе интервалов дат слов формируется подборка слов, соответствующих конкретной эпохе, исключая анахронизмы",
+			Name:        "Классический слой",
+			ServiceDesc: "Эпоха Пушкина и Толстого. Развитие науки, формирование норм, частичная архаизация старых слов.",
 			MinioURL:    minioBaseURL + "/img_4.png",
+			FromYear:    1800,
+			ToYear:      1917,
 		},
 		{
 			ID:          6,
-			Name:        "Автоматизированный анализ",
-			ServiceDesc: "Программное решение для сканирования текста, проверки слов по историческим словарям с интервалами дат и определения вероятного периода написания",
+			Name:        "Революционно-советский слой",
+			ServiceDesc: "Массовые неологизмы и идеологическая лексика: «колхоз», «пятилетка», «социализм».",
 			MinioURL:    minioBaseURL + "/img_5.png",
+			FromYear:    1917,
+			ToYear:      1950,
 		},
 		{
 			ID:          7,
-			Name:        "Визуализация структуры",
-			ServiceDesc: "Графики или диаграммы распределения слов текста по их интервалам дат, отображение архаизмов и неологизмов",
+			Name:        "Позднесоветский слой",
+			ServiceDesc: "Техническая и бюрократическая речь: «автоматизация», «НИИ», «профком», «космодром».",
 			MinioURL:    minioBaseURL + "/img_6.png",
+			FromYear:    1950,
+			ToYear:      1985,
 		},
 	}
 
-	return &Repository{
-		orders: orders,
-	}, nil
+	return &Repository{orders: chronoIntervals}, nil
 }
 
-func (r *Repository) GetOrders() ([]Order, error) {
+func (r *Repository) GetOrders() ([]ChronoIntervals, error) {
 	if len(r.orders) == 0 {
 		return nil, fmt.Errorf("массив пустой")
 	}
 	return r.orders, nil
 }
 
-func (r *Repository) GetOrderByID(id string) (*Order, error) {
+func (r *Repository) GetOrderByID(id string) (*ChronoIntervals, error) {
 	orderID, err := strconv.Atoi(id)
 	if err != nil {
 		return nil, fmt.Errorf("неверный формат ID: %v", err)
@@ -91,22 +105,22 @@ func (r *Repository) GetOrderByID(id string) (*Order, error) {
 		}
 	}
 
-	return nil, fmt.Errorf("заказ с ID %s не найден", id)
+	return nil, fmt.Errorf("слой с ID %s не найден", id)
 }
 
-func (r *Repository) SearchOrders(query string) ([]Order, error) {
+func (r *Repository) SearchOrders(query string) ([]ChronoIntervals, error) {
 	if query == "" {
 		return r.orders, nil
 	}
 
 	query = strings.ToLower(query)
-	var filteredOrders []Order
+	var filtered []ChronoIntervals
 
 	for _, order := range r.orders {
 		if strings.Contains(strings.ToLower(order.Name), query) {
-			filteredOrders = append(filteredOrders, order)
+			filtered = append(filtered, order)
 		}
 	}
 
-	return filteredOrders, nil
+	return filtered, nil
 }

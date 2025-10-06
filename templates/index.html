@@ -2,28 +2,28 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
     <title>Frequency Archives</title>
-    <link rel="stylesheet" href="/resources/styles/styles.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <link href="/resources/styles/styles.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" rel="stylesheet">
 </head>
 <body>
 <div class="container">
     <header class="shadow-element">
-        <a href="/">
+        <a href="/chrono">
             <h1>Chrono Archives</h1>
         </a>
     </header>
     <div class="search-container">
-        <form action="/" method="GET" class="search-form">
+        <form action="/chrono" class="search-form" method="GET">
             <div class="search-bar shadow-element">
-                <input type="text" name="query" placeholder="Введите название услуги" value="{{.query}}">
+                <input name="interval" placeholder="Введите название услуги" type="text" value="{{.interval}}">
             </div>
             <div class="search-button shadow-element">
                 <button type="submit">Найти</button>
             </div>
             <div class="cart-button shadow-element">
-                <a href="/cart">
+                <a href="/chrono_calc">
                     <i class="fas fa-archive cart-icon"></i>
                     {{if gt .cartCount 0}}
                     <span class="cart-badge">{{.cartCount}}</span>
@@ -33,17 +33,17 @@
         </form>
     </div>
 
-        <div class="chrono-container">
-            {{if .orders}}
-                {{range .orders}}
-                    {{template "chrono.html" .}}
-                {{end}}
-            {{else}}
-                <div class="no-results">
-                    <p>По вашему запросу ничего не найдено</p>
-                </div>
-            {{end}}
+    <div class="chrono-container">
+        {{if .orders}}
+        {{range .orders}}
+        {{template "chrono.html" .}}
+        {{end}}
+        {{else}}
+        <div class="no-results">
+            <p>По вашему запросу ничего не найдено</p>
         </div>
+        {{end}}
+    </div>
 </div>
 
 

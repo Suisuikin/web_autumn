@@ -11,6 +11,25 @@ body {
     color: #33290A;
 }
 
+.chrono-info {
+    padding: 12px 16px;
+    background: #fff;
+    text-align: center;
+}
+
+.chrono-info h2 {
+    font-size: 1.3rem;
+    margin-bottom: 8px;
+}
+
+.chrono-years {
+    font-weight: 600;
+    font-size: 1rem;
+    color: #444;
+    margin: 6px 0 12px 0;
+    text-align: center;
+}
+
 .container {
     max-width: 1323px;
     margin: 0 auto;
@@ -144,7 +163,7 @@ main {
 .chrono-card-wrapper {
     position: relative;
     width: calc((100% - 48px) / 3);
-    height: 272px;
+    height: 310px;
     flex-shrink: 0;
     min-width: 405px;
 }
@@ -949,6 +968,252 @@ header.shadow-element {
     color: #33290A;
     margin-bottom: 20px;
 }
+
+.chrono-card {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    border-radius: 12px;
+    overflow: hidden;
+    transition: transform 0.2s ease;
+}
+
+.chrono-card:hover {
+    transform: scale(1.02);
+}
+
+.chrono-info {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 12px 16px;
+    background: #fff;
+}
+
+.chrono-info h2 {
+    font-size: 1.3rem;
+    margin-bottom: 6px;
+}
+
+.chrono-years {
+    font-weight: 600;
+    font-size: 1rem;
+    color: #444;
+    margin: 6px 0 12px 0;
+}
+
+.details-button {
+    display: inline-block;
+    margin-top: 12px;
+}
+
+.chrono-card {
+    display: flex;
+    flex-direction: column;
+    height: auto;
+    border-radius: 12px;
+    overflow: hidden;
+    background: #fff;
+}
+
+.chrono-info {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 12px 16px;
+    gap: 8px;
+}
+
+.chrono-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 24px;
+    padding: 0;
+    justify-content: flex-start;
+    align-items: flex-start;
+}
+
+.chrono-card {
+    display: flex;
+    flex-direction: column;
+    min-height: auto;
+    border-radius: 12px;
+    overflow: hidden;
+    background: #fff;
+    box-sizing: border-box;
+    flex-shrink: 0;
+}
+
+.chrono-info {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 12px 16px;
+    gap: 8px;
+    flex-grow: 1;
+    text-align: center;
+}
+
+.chrono-info {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 8px 12px;
+    gap: 4px;
+    text-align: center;
+    flex-grow: 1;
+}
+
+.chrono-info h2 {
+    font-size: 1.15rem;
+    margin: 0;
+}
+
+.chrono-years {
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: #444;
+    margin: 0;
+}
+
+.order-section {
+    display: flex;
+    gap: 24px;
+    align-items: flex-start;
+}
+
+.input-wrapper {
+    width: 100%;
+}
+
+.input-field {
+    width: 100%;
+    min-height: 100px;
+    padding: 6px 10px;
+    border-radius: 8px;
+    border: 1px solid #ccc;
+    background-color: #fff;
+    font-size: 0.95rem;
+    overflow-y: auto;
+}
+
+.chrono-result-wrapper {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+    font-size: 1rem;
+    font-weight: 600;
+    color: #333;
+}
+
+.chrono-years {
+    padding: 6px 12px;
+    border-radius: 6px;
+    background-color: #f0f0f0;
+}
+
+.row-layout {
+    display: flex;
+    flex-direction: row;
+    gap: 24px;
+    align-items: flex-start;
+    width: 100%;
+}
+
+.input-column {
+    flex: 2;
+}
+
+.result-column {
+    flex: 1;
+}
+
+.input-wrapper {
+    width: 100%;
+}
+
+.input-field {
+    width: 100%;
+    min-height: 100px;
+    padding: 6px 10px;
+    border-radius: 8px;
+    border: 1px solid #ccc;
+    background-color: #fff;
+    font-size: 0.95rem;
+    overflow-y: auto;
+}
+
+.chrono-result-wrapper {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+    font-size: 1rem;
+    font-weight: 600;
+    color: #333;
+}
+
+.chrono-years {
+    padding: 6px 12px;
+    border-radius: 6px;
+    background-color: #f0f0f0;
+}
+
+.row-layout {
+    display: flex !important;
+    flex-direction: row;
+    gap: 24px;
+    align-items: flex-start;
+    width: 100%;
+}
+
+.input-column {
+    flex: 2;
+    min-width: 0;
+}
+
+.result-column {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.input-wrapper {
+    width: 100%;
+}
+
+.input-field {
+    width: 100%;
+    min-height: 100px;
+    padding: 6px 10px;
+    border-radius: 8px;
+    border: 1px solid #ccc;
+    background-color: #fff;
+    font-size: 0.95rem;
+    overflow-y: auto;
+}
+
+.chrono-result-wrapper {
+    padding: 8px;
+    background-color: #f0f0f0;
+    border-radius: 6px;
+    font-weight: 600;
+    text-align: center;
+    width: 100%;
+}
+
+.chrono-years {
+    display: inline-block;
+}
+
 
 @media (max-width: 768px) {
     .chrono-card {

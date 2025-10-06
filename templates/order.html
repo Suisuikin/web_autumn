@@ -2,70 +2,87 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
     <title>Составление заявки - Chrono Archives</title>
-    <link rel="stylesheet" href="/resources/styles/styles.css">
+    <link href="/resources/styles/styles.css" rel="stylesheet">
 </head>
 <body>
 <div class="container">
     <header class="shadow-element">
-        <a href="/"><h1>Chrono Archives</h1></a>
+        <a href="/chrono"><h1>Chrono Archives</h1></a>
     </header>
 
     <div class="order-form-new shadow-element">
         <div class="order-form-layout">
             <div class="order-form-left">
-                <div class="order-section">
-                    <h2 class="input-label">Исходный текст</h2>
-                    <div class="input-wrapper">
-                        <div class="input-field shadow-element" contenteditable="true" data-placeholder="Исходный текст"></div>
-                        <div class="upload-button shadow-element">
-                            <button>Загрузить текст</button>
+
+                <div class="order-section row-layout" style="display: flex; gap: 24px; align-items: stretch;">
+
+                    <div class="input-column shadow-element" style="flex: 2; padding: 12px; border-radius: 8px; background-color: #fff;">
+                        <h2 class="input-label">Введите слова</h2>
+                        <div class="input-wrapper">
+                            <div class="input-field shadow-element" contenteditable="true" data-placeholder="Введите слова" style="min-height: 120px;"></div>
                         </div>
                     </div>
+
+                    <div class="result-column shadow-element" style="flex: 1; padding: 12px; border-radius: 8px; background-color: #fff; display: flex; flex-direction: column; justify-content: center; align-items: center;">
+                        <h2 class="input-label">Результат хронологической принадлежности</h2>
+                        <div class="chrono-result-wrapper" style="padding: 12px; background-color: #f0f0f0; border-radius: 6px; width: 100%; text-align: center;">
+                            <span class="chrono-years">1234 — 2000 гг.</span>
+                        </div>
+                    </div>
+
                 </div>
 
-                <div class="order-section">
-                    <h2 class="input-label">PDF отчет, таблица, графическая визуализация</h2>
-                    <div class="input-field shadow-element" contenteditable="true" data-placeholder="PDF отчет, таблица, графическая визуализация"></div>
-                </div>
+
+
+
+
 
                 <div class="dotted-separator"></div>
 
                 {{if eq (len .RandomServices) 2}}
-                <div class="order-random-services">
+                <div class="order-random-services" style="display: flex; flex-direction: column; gap: 24px;">
+
+                    <!-- Первая карточка с комментарем справа -->
                     {{with (index .RandomServices 0)}}
-                    <div class="order-service-card shadow-element">
-                        <img src="{{.MinioURL}}" alt="{{.Name}}">
-                        <div class="order-service-card-info">
-                            <h3>{{.Name}}</h3>
-                            <p>{{.ServiceDesc}}</p>
+                    <div class="service-comment-wrapper" style="display: flex; gap: 12px; align-items: stretch;">
+                        <div class="order-service-card shadow-element" style="flex: 1;">
+                            <img src="{{.MinioURL}}" alt="{{.Name}}">
+                            <div class="order-service-card-info">
+                                <h3>{{.Name}}</h3>
+                                <span class="chrono-years">{{.FromYear}} — {{.ToYear}} гг.</span>
+                            </div>
+                        </div>
+                        <div class="comment-field-wrapper" style="flex: 1;">
+                            <div class="input-wrapper" style="height: 100%;">
+                                <div class="input-field shadow-element" contenteditable="true" data-placeholder="Комментарий" style="height: 100%;"></div>
+                            </div>
                         </div>
                     </div>
                     {{end}}
 
-                    <div class="dotted-separator"></div>
-
+                    <!-- Вторая карточка с комментарем справа -->
                     {{with (index .RandomServices 1)}}
-                    <div class="order-service-card shadow-element">
-                        <img src="{{.MinioURL}}" alt="{{.Name}}">
-                        <div class="order-service-card-info">
-                            <h3>{{.Name}}</h3>
-                            <p>{{.ServiceDesc}}</p>
+                    <div class="service-comment-wrapper" style="display: flex; gap: 12px; align-items: stretch;">
+                        <div class="order-service-card shadow-element" style="flex: 1;">
+                            <img src="{{.MinioURL}}" alt="{{.Name}}">
+                            <div class="order-service-card-info">
+                                <h3>{{.Name}}</h3>
+                                <span class="chrono-years">{{.FromYear}} — {{.ToYear}} гг.</span>
+                            </div>
+                        </div>
+                        <div class="comment-field-wrapper" style="flex: 1;">
+                            <div class="input-wrapper" style="height: 100%;">
+                                <div class="input-field shadow-element" contenteditable="true" data-placeholder="Комментарий" style="height: 100%;"></div>
+                            </div>
                         </div>
                     </div>
                     {{end}}
+
                 </div>
                 {{end}}
 
-                <div class="dotted-separator"></div>
-
-                <div class="order-section">
-                    <h2 class="input-label">Результат хронологической принадлежности</h2>
-                    <div class="input-field shadow-element" contenteditable="false" data-placeholder="Здесь появится результат">
-                        {{.ChronoResult}}
-                    </div>
-                </div>
 
             </div>
         </div>

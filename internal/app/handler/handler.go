@@ -20,9 +20,9 @@ func NewHandler(r *repository.Repository) *Handler {
 }
 
 func (h *Handler) GetOrders(ctx *gin.Context) {
-	searchQuery := ctx.Query("query")
+	searchQuery := ctx.Query("interval")
 
-	var orders []repository.Order
+	var orders []repository.ChronoIntervals
 	var err error
 
 	if searchQuery != "" {
@@ -71,7 +71,7 @@ func (h *Handler) GetOrderForm(ctx *gin.Context) {
 	allServices, err := h.Repository.GetOrders()
 	if err != nil {
 		logrus.Error("Ошибка получения случайных карточек: ", err)
-		allServices = []repository.Order{}
+		allServices = []repository.ChronoIntervals{}
 	}
 
 	rand.Shuffle(len(allServices), func(i, j int) {
