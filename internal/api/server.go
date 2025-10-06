@@ -29,8 +29,8 @@ func StartServer() {
 
 	r.StaticFile("/styles.css", filepath.Join(templatesPath, "styles.css"))
 
-	r.GET("/", handler.GetOrders)
-	r.GET("/chrono_service/:id", handler.GetChronoServiceByID)
+	r.GET("/chrono", handler.GetOrders)
+	r.GET("/chrono_details/:id", handler.GetChronoServiceByID)
 	r.GET("/chrono_calc", handler.GetOrderForm)
 
 	r.Run()
