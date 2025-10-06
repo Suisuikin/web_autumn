@@ -2,22 +2,24 @@ package api
 
 import (
 	"github.com/gin-gonic/gin"
-	"github.com/sirupsen/logrus"
 	"log"
 	"path/filepath"
 	"rip/internal/app/handler"
 	"rip/internal/app/repository"
+	"rip/internal/pkg/database"
 )
 
-func StartServer() {
+func StartServer() error {
 	log.Println("Starting server")
 
-	repo, err := repository.NewRepository()
+	db, err := database.ConnectDB()
 	if err != nil {
-		logrus.Error("ошибка инициализации репозитория")
+		return err
 	}
 
-	handler := handler.NewHandler(repo)
+	repo := repository.NewRepository(db)
+
+	h := handler.NewHandler(repo)
 
 	r := gin.Default()
 
@@ -26,13 +28,16 @@ func StartServer() {
 
 	r.Static("/resources", "./resources")
 	r.Static("/templates", "./templates")
-
 	r.StaticFile("/styles.css", filepath.Join(templatesPath, "styles.css"))
 
-	r.GET("/chrono", handler.GetOrders)
-	r.GET("/chrono_details/:id", handler.GetChronoServiceByID)
-	r.GET("/chrono_calc", handler.GetOrderForm)
+	r.GET("/", h.GetLayers)
+	r.GET("/chrono_details/:id", h.GetLayerByID)
+	r.GET("/chrono/:id", h.GetOrderFormByID)
 
-	r.Run()
-	log.Println("Server down")
+	r.GET("/cart", h.GetCart)
+	r.POST("/cart/add/:id", h.AddToCart)
+	r.POST("/cart/delete/:id", h.DeleteRequest)
+	r.POST("/cart/update/:id", h.UpdateRequest)
+
+	return r.Run()
 }

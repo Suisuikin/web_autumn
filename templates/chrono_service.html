@@ -3,27 +3,35 @@
 <head>
     <meta charset="UTF-8">
     <meta content="width=device-width, initial-scale=1.0" name="viewport">
-    <title>{{.chrono.Name}} - Chrono Archives</title>
+    <title>{{.layer.Name}} - Chrono Archives</title>
     <link href="/resources/styles/styles.css" rel="stylesheet">
 </head>
 <body>
 <div class="container">
     <header class="shadow-element">
-        <a href="/chrono"><h1>Chrono Archives</h1></a>
+        <a href="/"><h1>Chrono Archives</h1></a>
     </header>
 
     <main>
         <div class="service-title-center">
-            <h2>{{.chrono.Name}}</h2>
+            <h2>{{.layer.Name}}</h2>
         </div>
         <div class="service-content">
             <div class="service-image-container">
-                <img alt="{{.chrono.Name}}" class="service-image shadow-element" src="{{.chrono.MinioURL}}">
+                <img alt="{{.layer.Name}}" class="service-image shadow-element" src="{{.layer.ImageURL}}">
             </div>
             <div class="service-info">
                 <div class="service-description">
-                    <p>{{.chrono.ServiceDesc}}</p>
+                    <p>{{.layer.Description}}</p>
                 </div>
+
+                <form action="/cart/add/{{.layer.ID}}" method="post" style="margin-top: 8px;">
+                    <button type="submit" class="add-to-cart-button shadow-element"
+                            style="padding: 6px 12px; background-color: rgba(130, 122, 94, 0.8); color: white; border-radius: 4px; border: none; cursor: pointer;">
+                        Добавить в заявку
+                    </button>
+                </form>
+
             </div>
         </div>
     </main>

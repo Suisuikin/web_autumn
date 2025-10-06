@@ -2,91 +2,98 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Составление заявки - Chrono Archives</title>
     <link href="/resources/styles/styles.css" rel="stylesheet">
+    <style>
+        .notes-input {
+            width: 100%;
+            height: 120px;
+            padding: 8px;
+            box-sizing: border-box;
+            border-radius: 8px;
+            border: 1px solid #ccc;
+            font-family: inherit;
+            font-size: 16px;
+        }
+    </style>
 </head>
 <body>
 <div class="container">
     <header class="shadow-element">
-        <a href="/chrono"><h1>Chrono Archives</h1></a>
+        <a href="/"><h1>Chrono Archives</h1></a>
     </header>
 
     <div class="order-form-new shadow-element">
         <div class="order-form-layout">
             <div class="order-form-left">
 
-                <div class="order-section row-layout" style="display: flex; gap: 24px; align-items: stretch;">
+                <form method="post" action="/cart/update/{{.RequestID}}">
 
-                    <div class="input-column shadow-element" style="flex: 2; padding: 12px; border-radius: 8px; background-color: #fff;">
-                        <h2 class="input-label">Введите слова</h2>
-                        <div class="input-wrapper">
-                            <div class="input-field shadow-element" contenteditable="true" data-placeholder="Введите слова" style="min-height: 120px;"></div>
+                    {{if .RequestID}}
+                    <div class="request-info-wrapper" style="display: flex; gap: 16px; margin-bottom: 16px;">
+                        <div class="request-id shadow-element" style="padding: 8px 12px; background-color: #f9f9f9; border-radius: 6px;">
+                            <strong>ID заявки:</strong> {{.RequestID}}
+                        </div>
+                        <div class="request-status shadow-element" style="padding: 8px 12px; background-color: #f9f9f9; border-radius: 6px;">
+                            <strong>Статус:</strong> {{.RequestStatus}}
+                        </div>
+                    </div>
+                    {{end}}
+
+                    <div class="order-section row-layout" style="display: flex; gap: 24px; align-items: stretch;">
+                        <div class="input-column shadow-element" style="flex: 2; padding: 12px; border-radius: 8px; background-color: #fff;">
+                            <h2 class="input-label">Введите слова</h2>
+                            <input type="text" name="notes" class="notes-input" value="{{.RequestNotes}}">
+                        </div>
+
+                        <div class="result-column shadow-element" style="flex: 1; padding: 12px; border-radius: 8px; background-color: #fff; display: flex; flex-direction: column; justify-content: center; align-items: center;">
+                            <h2 class="input-label">Результат хронологической принадлежности</h2>
+                            <div class="chrono-result-wrapper" style="padding: 12px; background-color: #f0f0f0; border-radius: 6px; width: 100%; text-align: center;">
+                                <span class="chrono-years">1234 — 2000 гг.</span>
+                            </div>
                         </div>
                     </div>
 
-                    <div class="result-column shadow-element" style="flex: 1; padding: 12px; border-radius: 8px; background-color: #fff; display: flex; flex-direction: column; justify-content: center; align-items: center;">
-                        <h2 class="input-label">Результат хронологической принадлежности</h2>
-                        <div class="chrono-result-wrapper" style="padding: 12px; background-color: #f0f0f0; border-radius: 6px; width: 100%; text-align: center;">
-                            <span class="chrono-years">1234 — 2000 гг.</span>
-                        </div>
-                    </div>
-
-                </div>
-
-
-
-
-
-
-                <div class="dotted-separator"></div>
-
-                {{if eq (len .RandomServices) 2}}
-                <div class="order-random-services" style="display: flex; flex-direction: column; gap: 24px;">
-
-                    <!-- Первая карточка с комментарем справа -->
-                    {{with (index .RandomServices 0)}}
+                    {{if .RandomLayers}}
+                    <div class="dotted-separator"></div>
+                    {{range .RandomLayers}}
                     <div class="service-comment-wrapper" style="display: flex; gap: 12px; align-items: stretch;">
                         <div class="order-service-card shadow-element" style="flex: 1;">
-                            <img src="{{.MinioURL}}" alt="{{.Name}}">
+                            <img src="{{.ImageURL}}" alt="{{.Name}}">
                             <div class="order-service-card-info">
                                 <h3>{{.Name}}</h3>
                                 <span class="chrono-years">{{.FromYear}} — {{.ToYear}} гг.</span>
                             </div>
                         </div>
                         <div class="comment-field-wrapper" style="flex: 1;">
-                            <div class="input-wrapper" style="height: 100%;">
-                                <div class="input-field shadow-element" contenteditable="true" data-placeholder="Комментарий" style="height: 100%;"></div>
-                            </div>
+                            <input type="text" name="comment_{{.ID}}" class="input-field shadow-element"
+                                   placeholder="Комментарий"
+                                   value="{{index $.Comments .ID}}"
+                                   style="width: 100%; height: 100%; padding: 8px; box-sizing: border-box;">
                         </div>
                     </div>
                     {{end}}
-
-                    <!-- Вторая карточка с комментарем справа -->
-                    {{with (index .RandomServices 1)}}
-                    <div class="service-comment-wrapper" style="display: flex; gap: 12px; align-items: stretch;">
-                        <div class="order-service-card shadow-element" style="flex: 1;">
-                            <img src="{{.MinioURL}}" alt="{{.Name}}">
-                            <div class="order-service-card-info">
-                                <h3>{{.Name}}</h3>
-                                <span class="chrono-years">{{.FromYear}} — {{.ToYear}} гг.</span>
-                            </div>
-                        </div>
-                        <div class="comment-field-wrapper" style="flex: 1;">
-                            <div class="input-wrapper" style="height: 100%;">
-                                <div class="input-field shadow-element" contenteditable="true" data-placeholder="Комментарий" style="height: 100%;"></div>
-                            </div>
-                        </div>
-                    </div>
                     {{end}}
 
-                </div>
-                {{end}}
+                    <div class="dotted-separator"></div>
+                    <div class="order-actions" style="display: flex; justify-content: space-between; margin-top: 32px; gap: 12px;">
+                        <button type="submit" class="action-button shadow-element"
+                                style="flex: 1; width: 100%; padding: 14px 0; font-size: 18px; background-color: #5bc0de; color: white; border: none; border-radius: 8px; cursor: pointer;">
+                            Сохранить параметры
+                        </button>
 
+                        <button type="submit" formaction="/cart/delete/{{.RequestID}}" class="action-button shadow-element"
+                                style="flex: 1; width: 100%; padding: 14px 0; font-size: 18px; background-color: #d9534f; color: white; border: none; border-radius: 8px; cursor: pointer;">
+                            Закрыть заявку
+                        </button>
+                    </div>
+
+                </form>
 
             </div>
         </div>
     </div>
-
+</div>
 </body>
 </html>

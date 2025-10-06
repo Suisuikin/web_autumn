@@ -10,12 +10,12 @@
 <body>
 <div class="container">
     <header class="shadow-element">
-        <a href="/chrono">
+        <a href="/">
             <h1>Chrono Archives</h1>
         </a>
     </header>
     <div class="search-container">
-        <form action="/chrono" class="search-form" method="GET">
+        <form action="/" class="search-form" method="GET">
             <div class="search-bar shadow-element">
                 <input name="interval" placeholder="Введите название услуги" type="text" value="{{.interval}}">
             </div>
@@ -23,7 +23,7 @@
                 <button type="submit">Найти</button>
             </div>
             <div class="cart-button shadow-element">
-                <a href="/chrono_calc">
+                <a href="/cart">
                     <i class="fas fa-archive cart-icon"></i>
                     {{if gt .cartCount 0}}
                     <span class="cart-badge">{{.cartCount}}</span>
@@ -34,8 +34,8 @@
     </div>
 
     <div class="chrono-container">
-        {{if .orders}}
-        {{range .orders}}
+        {{if .layers}}
+        {{range .layers}}
         {{template "chrono.html" .}}
         {{end}}
         {{else}}

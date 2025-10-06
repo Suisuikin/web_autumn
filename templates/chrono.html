@@ -1,11 +1,18 @@
 <div class="chrono-card-wrapper">
     <div class="chrono-card shadow-element">
-        <img alt="{{.Name}}" class="chrono-card-image shadow-element" src="{{.MinioURL}}">
+        <img alt="{{.Name}}" class="chrono-card-image shadow-element" src="{{.ImageURL}}">
 
         <div class="chrono-info">
             <h2>{{.Name}}</h2>
             <p class="chrono-years">{{.FromYear}} — {{.ToYear}} гг.</p>
             <a class="details-button" href="/chrono_details/{{.ID}}">Подробнее</a>
+
+            <form action="/cart/add/{{.ID}}" method="post" style="margin-top: 8px;">
+                <button type="submit" class="add-to-cart-button shadow-element"
+                        style="padding: 6px 12px; background-color: rgba(130, 122, 94, 0.8); color: white; border-radius: 4px; border: none; cursor: pointer;">
+                    Добавить в заявку
+                </button>
+            </form>
         </div>
     </div>
 </div>

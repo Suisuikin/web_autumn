@@ -1,126 +1,193 @@
 package repository
 
 import (
+	"errors"
 	"fmt"
-	"strconv"
-	"strings"
-)
+	"log"
+	"rip/internal/app/models"
+	"time"
 
-const (
-	minioBaseURL = "http://localhost:9000/chrono"
+	"gorm.io/gorm"
 )
 
 type Repository struct {
-	orders []ChronoIntervals
+	db *gorm.DB
 }
 
-type ChronoIntervals struct {
-	ID          int
-	Name        string
-	ServiceDesc string
-	MinioURL    string
-	FromYear    int
-	ToYear      int
+func NewRepository(db *gorm.DB) *Repository {
+	return &Repository{db: db}
 }
 
-func NewRepository() (*Repository, error) {
-	chronoIntervals := []ChronoIntervals{
-		{
-			ID:          1,
-			Name:        "Древнерусский слой",
-			ServiceDesc: "Церковнославянская и летописная лексика: «вещати», «чудо», «чадо», «рать». Без заимствований.",
-			MinioURL:    minioBaseURL + "/img.png",
-			FromYear:    1000,
-			ToYear:      1450,
-		},
-		{
-			ID:          2,
-			Name:        "Раннесреднерусский слой",
-			ServiceDesc: "Смешение церковнославянской и народной речи. Первые полонизмы и кальки с латинизмов.",
-			MinioURL:    minioBaseURL + "/img_1.png",
-			FromYear:    1450,
-			ToYear:      1600,
-		},
-		{
-			ID:          3,
-			Name:        "Позднесреднерусский слой",
-			ServiceDesc: "Расширение бытовой лексики, редкие заимствования из Европы. Переходный период перед реформами Петра.",
-			MinioURL:    minioBaseURL + "/img_2.png",
-			FromYear:    1600,
-			ToYear:      1720,
-		},
-		{
-			ID:          4,
-			Name:        "Петровский слой",
-			ServiceDesc: "Активное заимствование из западных языков, формирование современного литературного языка.",
-			MinioURL:    minioBaseURL + "/img_3.png",
-			FromYear:    1720,
-			ToYear:      1800,
-		},
-		{
-			ID:          5,
-			Name:        "Классический слой",
-			ServiceDesc: "Эпоха Пушкина и Толстого. Развитие науки, формирование норм, частичная архаизация старых слов.",
-			MinioURL:    minioBaseURL + "/img_4.png",
-			FromYear:    1800,
-			ToYear:      1917,
-		},
-		{
-			ID:          6,
-			Name:        "Революционно-советский слой",
-			ServiceDesc: "Массовые неологизмы и идеологическая лексика: «колхоз», «пятилетка», «социализм».",
-			MinioURL:    minioBaseURL + "/img_5.png",
-			FromYear:    1917,
-			ToYear:      1950,
-		},
-		{
-			ID:          7,
-			Name:        "Позднесоветский слой",
-			ServiceDesc: "Техническая и бюрократическая речь: «автоматизация», «НИИ», «профком», «космодром».",
-			MinioURL:    minioBaseURL + "/img_6.png",
-			FromYear:    1950,
-			ToYear:      1985,
-		},
+func (r *Repository) GetLayers() ([]models.Layer, error) {
+	var layers []models.Layer
+	if err := r.db.Find(&layers).Error; err != nil {
+		return nil, fmt.Errorf("не удалось получить слои: %w", err)
+	}
+	if len(layers) == 0 {
+		return nil, fmt.Errorf("нет данных в таблице layers")
 	}
 
-	return &Repository{orders: chronoIntervals}, nil
+	if err := r.db.Find(&layers).Error; err != nil {
+		return nil, fmt.Errorf("не удалось получить слои: %w", err)
+	}
+	log.Println("Found layers:", len(layers))
+
+	return layers, nil
 }
 
-func (r *Repository) GetOrders() ([]ChronoIntervals, error) {
-	if len(r.orders) == 0 {
-		return nil, fmt.Errorf("массив пустой")
+func (r *Repository) GetLayerByID(id uint) (*models.Layer, error) {
+	var layer models.Layer
+	if err := r.db.First(&layer, id).Error; err != nil {
+		return nil, fmt.Errorf("слой с ID %d не найден: %w", id, err)
 	}
-	return r.orders, nil
+	return &layer, nil
 }
 
-func (r *Repository) GetOrderByID(id string) (*ChronoIntervals, error) {
-	orderID, err := strconv.Atoi(id)
-	if err != nil {
-		return nil, fmt.Errorf("неверный формат ID: %v", err)
-	}
-
-	for _, order := range r.orders {
-		if order.ID == orderID {
-			return &order, nil
-		}
-	}
-
-	return nil, fmt.Errorf("слой с ID %s не найден", id)
-}
-
-func (r *Repository) SearchOrders(query string) ([]ChronoIntervals, error) {
+func (r *Repository) SearchLayers(query string) ([]models.Layer, error) {
+	var layers []models.Layer
 	if query == "" {
-		return r.orders, nil
+		return r.GetLayers()
 	}
 
-	query = strings.ToLower(query)
-	var filtered []ChronoIntervals
+	if err := r.db.Where("LOWER(name) LIKE ?", "%"+query+"%").Find(&layers).Error; err != nil {
+		return nil, fmt.Errorf("ошибка поиска: %w", err)
+	}
 
-	for _, order := range r.orders {
-		if strings.Contains(strings.ToLower(order.Name), query) {
-			filtered = append(filtered, order)
+	return layers, nil
+}
+
+func (r *Repository) GetOpenRequest(userID uint) (*models.ResearchRequest, error) {
+	var req models.ResearchRequest
+
+	err := r.db.
+		Preload("Layers").
+		Where("user_id = ? AND status = ?", userID, "открыта").
+		Order("id DESC").
+		First(&req).Error
+
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("ошибка при получении заявки: %w", err)
+	}
+
+	return &req, nil
+}
+
+func (r *Repository) CreateNewRequest(userID uint) (*models.ResearchRequest, error) {
+	req := models.ResearchRequest{
+		Status:    "открыта",
+		CreatedAt: time.Now(),
+		UserID:    userID,
+	}
+	if err := r.db.Create(&req).Error; err != nil {
+		return nil, err
+	}
+	return &req, nil
+}
+
+func (r *Repository) AddLayerToRequest(reqID, layerID uint) error {
+	return r.db.Exec("INSERT INTO request_layers (research_request_id, layer_id) VALUES (?, ?) ON CONFLICT DO NOTHING", reqID, layerID).Error
+}
+
+func (r *Repository) DeleteLayerFromRequest(reqID, layerID uint) error {
+	return r.db.Exec("DELETE FROM request_layers WHERE research_request_id = ? AND layer_id = ?", reqID, layerID).Error
+}
+
+func (r *Repository) GetRequestLayers(reqID uint) ([]models.Layer, error) {
+	var req models.ResearchRequest
+	if err := r.db.Preload("Layers").First(&req, reqID).Error; err != nil {
+		return nil, err
+	}
+	return req.Layers, nil
+}
+
+func (r *Repository) FindOrCreateOpenRequest(userID uint) (*models.ResearchRequest, error) {
+	var req models.ResearchRequest
+
+	err := r.db.
+		Where("user_id = ? AND status = ?", userID, "открыта").
+		Order("created_at DESC").
+		Preload("Layers").
+		First(&req).Error
+
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			req = models.ResearchRequest{
+				UserID: userID,
+				Status: "открыта",
+			}
+			if err := r.db.Create(&req).Error; err != nil {
+				return nil, fmt.Errorf("не удалось создать заявку: %w", err)
+			}
+			return &req, nil
+		}
+		return nil, fmt.Errorf("ошибка поиска заявки: %w", err)
+	}
+
+	return &req, nil
+}
+
+func (r *Repository) CloseRequest(requestID uint) error {
+	return r.db.Model(&models.ResearchRequest{}).
+		Where("id = ?", requestID).
+		Update("status", "закрыта").Error
+}
+
+func (r *Repository) UpdateLayerComments(requestID uint, comments map[uint]string) error {
+	for layerID, comment := range comments {
+		if err := r.db.Model(&models.RequestLayer{}).
+			Where("research_request_id = ? AND layer_id = ?", requestID, layerID).
+			Update("comment", comment).Error; err != nil {
+			return err
 		}
 	}
+	return nil
+}
 
-	return filtered, nil
+func (r *Repository) UpdateRequestStatus(requestID uint, status string) error {
+	return r.db.Model(&models.ResearchRequest{}).Where("id = ?", requestID).Update("status", status).Error
+}
+
+func (r *Repository) GetRequestByID(requestID uint) (*models.ResearchRequest, error) {
+	var req models.ResearchRequest
+	err := r.db.Preload("Layers").First(&req, requestID).Error
+	if err != nil {
+		return nil, err
+	}
+	return &req, nil
+}
+
+func (r *Repository) GetRequestWithComments(requestID uint) (*models.ResearchRequest, error) {
+	var req models.ResearchRequest
+	err := r.db.Preload("Layers").
+		Preload("Layers.RequestLayers", "research_request_id = ?", requestID).
+		First(&req, requestID).Error
+	if err != nil {
+		return nil, err
+	}
+	return &req, nil
+}
+
+func (r *Repository) GetLayerComments(requestID uint) (map[uint]string, error) {
+	var rows []models.RequestLayer
+	err := r.db.Where("research_request_id = ?", requestID).Find(&rows).Error
+	if err != nil {
+		return nil, err
+	}
+
+	comments := make(map[uint]string)
+	for _, rl := range rows {
+		if rl.Comment != nil {
+			comments[rl.LayerID] = *rl.Comment
+		}
+	}
+	return comments, nil
+}
+
+func (r *Repository) UpdateRequestNotes(requestID uint, notes string) error {
+	return r.db.Model(&models.ResearchRequest{}).
+		Where("id = ?", requestID).
+		Update("notes", notes).Error
 }
