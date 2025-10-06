@@ -187,7 +187,7 @@ func (h *Handler) UpdateRequest(ctx *gin.Context) {
 		return
 	}
 
-	notes := ctx.Request.FormValue("notes") // <-- старый метод
+	notes := ctx.Request.FormValue("notes")
 	if err := h.Repository.UpdateRequestNotes(requestID, notes); err != nil {
 		ctx.String(http.StatusInternalServerError, "Ошибка при сохранении слов")
 		return
@@ -211,7 +211,7 @@ func (h *Handler) UpdateRequest(ctx *gin.Context) {
 		return
 	}
 
-	ctx.Redirect(http.StatusSeeOther, "/cart")
+	ctx.Redirect(http.StatusSeeOther, "/")
 }
 
 func (h *Handler) GetOrderFormByID(ctx *gin.Context) {

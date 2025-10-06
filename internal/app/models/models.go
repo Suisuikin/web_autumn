@@ -18,6 +18,7 @@ type Layer struct {
 	ImageURL    *string `gorm:"size:2048"`
 	FromYear    int     `gorm:"not null"`
 	ToYear      int     `gorm:"not null"`
+	Status      string  `gorm:"size:50;not null;default:'active'"`
 }
 
 type ResearchRequest struct {
