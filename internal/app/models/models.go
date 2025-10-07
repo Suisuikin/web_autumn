@@ -12,29 +12,30 @@ type User struct {
 }
 
 type Layer struct {
-	ID          uint    `gorm:"primaryKey"`
-	Name        string  `gorm:"size:255;not null;unique"`
-	Description string  `gorm:"type:text"`
-	ImageURL    *string `gorm:"size:2048"`
-	FromYear    int     `gorm:"not null"`
-	ToYear      int     `gorm:"not null"`
-	Status      string  `gorm:"size:50;not null;default:'active'"`
+	ID          uint    `gorm:"primaryKey" json:"id"`
+	Name        string  `gorm:"size:255;not null;unique" json:"name"`
+	Description string  `gorm:"type:text" json:"description,omitempty"`
+	ImageURL    *string `gorm:"size:2048" json:"image_url,omitempty"`
+	FromYear    int     `gorm:"not null" json:"from_year"`
+	ToYear      int     `gorm:"not null" json:"to_year"`
+	Status      string  `gorm:"size:50;not null;default:'active'" json:"status"`
 }
 
 type ResearchRequest struct {
-	ID          uint      `gorm:"primaryKey"`
-	Status      string    `gorm:"size:50;not null;default:'draft'"`
-	CreatedAt   time.Time `gorm:"not null;autoCreateTime"`
-	FormedAt    *time.Time
-	CompletedAt *time.Time
-	UserID      uint `gorm:"not null"`
-	User        User
-	Notes       *string
-	Layers      []Layer `gorm:"many2many:request_layers;"`
+	ID          uint       `gorm:"primaryKey" json:"id"`
+	Status      string     `gorm:"size:50;not null;default:'draft'" json:"status"`
+	CreatedAt   time.Time  `gorm:"not null;autoCreateTime" json:"created_at"`
+	FormedAt    *time.Time `json:"formed_at,omitempty"`
+	CompletedAt *time.Time `json:"completed_at,omitempty"`
+	UserID      uint       `gorm:"not null" json:"user_id"`
+	ModeratorID uint       `gorm:"not null" json:" moderator_id"`
+	User        User       `json:"user,omitempty"`
+	Notes       *string    `json:"notes,omitempty"`
+	Layers      []Layer    `gorm:"many2many:request_layers;" json:"layers,omitempty"`
 }
 
 type RequestLayer struct {
 	ResearchRequestID uint    `gorm:"primaryKey"`
 	LayerID           uint    `gorm:"primaryKey"`
-	Comment           *string `gorm:"size:1024"`
+	Comment           *string `gorm:"size:1024" json:"comment,omitempty"`
 }
