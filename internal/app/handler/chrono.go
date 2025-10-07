@@ -43,7 +43,11 @@ func (h *ChronoHandler) RegisterRoutes(api *gin.RouterGroup) {
 }
 
 func (h *ChronoHandler) ListRequests(ctx *gin.Context) {
-	requests, err := h.Repository.ListRequests()
+	status := ctx.Query("status")
+	from := ctx.Query("from")
+	to := ctx.Query("to")
+
+	requests, err := h.Repository.ListRequests(status, from, to)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Не удалось получить заявки"})
 		return
@@ -81,17 +85,24 @@ func (h *ChronoHandler) GetRequest(ctx *gin.Context) {
 }
 
 func (h *ChronoHandler) UpdateRequest(ctx *gin.Context) {
-	id, _ := strconv.Atoi(ctx.Param("id"))
+	id, err := strconv.Atoi(ctx.Param("id"))
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"status": "not ok", "error": "Неверный ID"})
+		return
+	}
+
 	var input models.ResearchRequest
 	if err := ctx.ShouldBindJSON(&input); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Неверные данные"})
+		ctx.JSON(http.StatusBadRequest, gin.H{"status": "not ok", "error": "Неверные данные"})
 		return
 	}
+
 	if err := h.Repository.UpdateRequest(uint(id), &input); err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Не удалось обновить заявку"})
+		ctx.JSON(http.StatusInternalServerError, gin.H{"status": "not ok", "error": "Не удалось обновить заявку"})
 		return
 	}
-	ctx.JSON(http.StatusOK, input)
+
+	ctx.JSON(http.StatusOK, gin.H{"status": "ok"})
 }
 
 func (h *ChronoHandler) DeleteRequest(ctx *gin.Context) {

@@ -3,6 +3,7 @@ package repository
 import (
 	"errors"
 	"rip/internal/app/models"
+	"time"
 
 	"gorm.io/gorm"
 )
@@ -89,16 +90,50 @@ func (r *RequestsRepository) RemoveRequestStrategy(reqID, layerID uint) error {
 		Delete(&models.RequestLayer{}).Error
 }
 
-func (r *Repository) ListRequests() ([]models.ResearchRequest, error) {
+func (r *Repository) ListRequests(status, fromStr, toStr string) ([]models.ResearchRequest, error) {
 	var requests []models.ResearchRequest
-	err := r.db.Preload("Layers").Find(&requests).Error
+	query := r.db.Preload("Layers")
+
+	if status != "" {
+		query = query.Where("status = ?", status)
+	}
+
+	if fromStr != "" {
+		if fromTime, err := time.Parse("2006-01-02", fromStr); err == nil {
+			query = query.Where("created_at >= ?", fromTime)
+		}
+	}
+
+	if toStr != "" {
+		if toTime, err := time.Parse("2006-01-02", toStr); err == nil {
+			query = query.Where("created_at <= ?", toTime)
+		}
+	}
+
+	err := query.Find(&requests).Error
 	return requests, err
 }
 
 func (r *Repository) GetCart() (*models.ResearchRequest, error) {
 	var req models.ResearchRequest
-	err := r.db.Preload("Layers").Where("status = ?", "открыта").First(&req).Error
-	return &req, err
+	err := r.db.Preload("Layers").Where("status = ?", "черновик").First(&req).Error
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			req = models.ResearchRequest{
+				Status: "черновик",
+				UserID: 1,
+			}
+			if err := r.db.Create(&req).Error; err != nil {
+				return nil, err
+			}
+			if err := r.db.Preload("Layers").First(&req, req.ID).Error; err != nil {
+				return nil, err
+			}
+			return &req, nil
+		}
+		return nil, err
+	}
+	return &req, nil
 }
 
 func (r *Repository) AddLayerToDraft(layerID uint) (*models.ResearchRequest, error) {
@@ -113,7 +148,7 @@ func (r *Repository) AddLayerToDraft(layerID uint) (*models.ResearchRequest, err
 
 func (r *Repository) AddLayerToOpenRequest(layerID uint) (*models.ResearchRequest, error) {
 	var req models.ResearchRequest
-	err := r.db.Preload("Layers").Where("status = ?", "открыта").First(&req).Error
+	err := r.db.Preload("Layers").Where("status = ?", "черновик").First(&req).Error
 	if err != nil {
 		req = models.ResearchRequest{Status: "открыта"}
 		if err := r.db.Create(&req).Error; err != nil {

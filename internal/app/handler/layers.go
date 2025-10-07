@@ -43,10 +43,12 @@ func (h *LayersHandler) RegisterRoutes(api *gin.RouterGroup) {
 }
 
 func (h *LayersHandler) GetLayers(ctx *gin.Context) {
-	layers, err := h.Repository.GetLayers()
+	interval := ctx.Query("interval")
+
+	layers, err := h.Repository.GetLayers(interval)
 	if err != nil {
 		logrus.Error(err)
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка получения слоев"})
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 	ctx.JSON(http.StatusOK, layers)

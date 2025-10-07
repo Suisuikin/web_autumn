@@ -20,20 +20,23 @@ type Repository struct {
 	Bucket string
 }
 
-func (r *Repository) GetLayers() ([]models.Layer, error) {
+func (r *Repository) GetLayers(name string) ([]models.Layer, error) {
 	var layers []models.Layer
-	if err := r.db.Find(&layers).Error; err != nil {
+	query := r.db
+
+	if name != "" {
+		// фильтр по имени с учетом частичного совпадения
+		query = query.Where("name ILIKE ?", "%"+name+"%")
+	}
+
+	if err := query.Find(&layers).Error; err != nil {
 		return nil, fmt.Errorf("не удалось получить слои: %w", err)
 	}
 	if len(layers) == 0 {
 		return nil, fmt.Errorf("нет данных в таблице layers")
 	}
 
-	if err := r.db.Find(&layers).Error; err != nil {
-		return nil, fmt.Errorf("не удалось получить слои: %w", err)
-	}
 	log.Println("Found layers:", len(layers))
-
 	return layers, nil
 }
 
@@ -48,7 +51,7 @@ func (r *Repository) GetLayerByID(id uint) (*models.Layer, error) {
 func (r *Repository) SearchLayers(query string) ([]models.Layer, error) {
 	var layers []models.Layer
 	if query == "" {
-		return r.GetLayers()
+		return r.GetLayers("")
 	}
 
 	if err := r.db.Where("LOWER(name) LIKE ?", "%"+query+"%").Find(&layers).Error; err != nil {
