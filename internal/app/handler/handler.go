@@ -228,6 +228,11 @@ func (h *Handler) GetOrderFormByID(ctx *gin.Context) {
 		return
 	}
 
+	if req.Status == "удалена" {
+		ctx.String(http.StatusNotFound, "Заявка не найдена")
+		return
+	}
+
 	comments, err := h.Repository.GetLayerComments(req.ID)
 	if err != nil {
 		comments = make(map[uint]string)

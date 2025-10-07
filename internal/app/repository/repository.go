@@ -132,7 +132,7 @@ func (r *Repository) FindOrCreateOpenRequest(userID uint) (*models.ResearchReque
 func (r *Repository) CloseRequest(requestID uint) error {
 	return r.db.Model(&models.ResearchRequest{}).
 		Where("id = ?", requestID).
-		Update("status", "закрыта").Error
+		Update("status", "удалена").Error
 }
 
 func (r *Repository) UpdateLayerComments(requestID uint, comments map[uint]string) error {
