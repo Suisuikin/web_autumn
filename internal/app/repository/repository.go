@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"log"
@@ -8,14 +9,15 @@ import (
 	"time"
 
 	"gorm.io/gorm"
+
+	"github.com/minio/minio-go/v7"
+	"github.com/minio/minio-go/v7/pkg/credentials"
 )
 
 type Repository struct {
-	db *gorm.DB
-}
-
-func NewRepository(db *gorm.DB) *Repository {
-	return &Repository{db: db}
+	db     *gorm.DB
+	Minio  *minio.Client
+	Bucket string
 }
 
 func (r *Repository) GetLayers() ([]models.Layer, error) {
@@ -187,7 +189,48 @@ func (r *Repository) GetLayerComments(requestID uint) (map[uint]string, error) {
 }
 
 func (r *Repository) UpdateRequestNotes(requestID uint, notes string) error {
-	return r.db.Model(&models.ResearchRequest{}).
-		Where("id = ?", requestID).
-		Update("notes", notes).Error
+	query := `UPDATE research_requests SET notes = ? WHERE id = ?`
+	return r.db.Exec(query, notes, requestID).Error
+}
+
+func NewRepository(db *gorm.DB) *Repository {
+	minioClient, bucket := InitMinio()
+	return &Repository{
+		db:     db,
+		Minio:  minioClient,
+		Bucket: bucket,
+	}
+}
+
+func InitMinio() (*minio.Client, string) {
+	endpoint := "127.0.0.1:9000"
+	accessKey := "admin"
+	secretKey := "admin123"
+	bucket := "chrono"
+
+	client, err := minio.New(endpoint, &minio.Options{
+		Creds:  credentials.NewStaticV4(accessKey, secretKey, ""),
+		Secure: false,
+	})
+	if err != nil {
+		log.Fatalf("Ошибка подключения к MinIO: %v", err)
+	}
+
+	ctx := context.Background()
+	exists, err := client.BucketExists(ctx, bucket)
+	if err != nil {
+		log.Fatalf("Ошибка проверки бакета MinIO: %v", err)
+	}
+
+	if !exists {
+		err = client.MakeBucket(ctx, bucket, minio.MakeBucketOptions{})
+		if err != nil {
+			log.Fatalf("Ошибка создания бакета MinIO: %v", err)
+		}
+		log.Printf("Бакет %s создан", bucket)
+	} else {
+		log.Printf("Бакет %s уже существует", bucket)
+	}
+
+	return client, bucket
 }

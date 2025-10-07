@@ -1,43 +1,37 @@
 package api
 
 import (
-	"github.com/gin-gonic/gin"
 	"log"
 	"path/filepath"
 	"rip/internal/app/handler"
 	"rip/internal/app/repository"
 	"rip/internal/pkg/database"
+
+	"github.com/gin-gonic/gin"
 )
 
-func StartServer() error {
-	log.Println("Starting server")
-
+func StartServer() {
 	db, err := database.ConnectDB()
 	if err != nil {
-		return err
+		log.Fatal(err)
 	}
 
 	repo := repository.NewRepository(db)
 
-	h := handler.NewHandler(repo)
+	layersHandler := handler.NewLayersHandler(repo, repo.Minio, repo.Bucket)
+	requestsHandler := handler.NewRequestsHandler(repo)
+	userHandler := handler.NewUsersHandler(repo)
 
 	r := gin.Default()
-
-	templatesPath := filepath.Join("templates")
-	r.LoadHTMLGlob(filepath.Join(templatesPath, "*.html"))
-
 	r.Static("/resources", "./resources")
-	r.Static("/templates", "./templates")
-	r.StaticFile("/styles.css", filepath.Join(templatesPath, "styles.css"))
+	r.LoadHTMLGlob(filepath.Join("templates", "*.html"))
 
-	r.GET("/", h.GetLayers)
-	r.GET("/chrono_details/:id", h.GetLayerByID)
-	r.GET("/chrono/:id", h.GetOrderFormByID)
+	apiGroup := r.Group("/api")
 
-	r.GET("/cart", h.GetCart)
-	r.POST("/cart/add/:id", h.AddToCart)
-	r.POST("/cart/delete/:id", h.DeleteRequest)
-	r.POST("/cart/update/:id", h.UpdateRequest)
+	layersHandler.RegisterRoutes(apiGroup)
+	requestsHandler.RegisterRoutes(apiGroup)
+	userHandler.RegisterRoutes(apiGroup)
 
-	return r.Run()
+	log.Println("Server started on :8080")
+	r.Run(":8080")
 }
