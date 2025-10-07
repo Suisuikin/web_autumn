@@ -61,7 +61,7 @@ func (r *Repository) GetOpenRequest(userID uint) (*models.ResearchRequest, error
 
 	err := r.db.
 		Preload("Layers").
-		Where("user_id = ? AND status = ?", userID, "открыта").
+		Where("user_id = ? AND status = ?", userID, "черновик").
 		Order("id DESC").
 		First(&req).Error
 
@@ -77,7 +77,7 @@ func (r *Repository) GetOpenRequest(userID uint) (*models.ResearchRequest, error
 
 func (r *Repository) CreateNewRequest(userID uint) (*models.ResearchRequest, error) {
 	req := models.ResearchRequest{
-		Status:    "открыта",
+		Status:    "черновик",
 		CreatedAt: time.Now(),
 		UserID:    userID,
 	}
@@ -107,7 +107,7 @@ func (r *Repository) FindOrCreateOpenRequest(userID uint) (*models.ResearchReque
 	var req models.ResearchRequest
 
 	err := r.db.
-		Where("user_id = ? AND status = ?", userID, "открыта").
+		Where("user_id = ? AND status = ?", userID, "черновик").
 		Order("created_at DESC").
 		Preload("Layers").
 		First(&req).Error
@@ -116,7 +116,7 @@ func (r *Repository) FindOrCreateOpenRequest(userID uint) (*models.ResearchReque
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			req = models.ResearchRequest{
 				UserID: userID,
-				Status: "открыта",
+				Status: "черновик",
 			}
 			if err := r.db.Create(&req).Error; err != nil {
 				return nil, fmt.Errorf("не удалось создать заявку: %w", err)
