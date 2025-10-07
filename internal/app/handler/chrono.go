@@ -10,16 +10,16 @@ import (
 	_ "github.com/sirupsen/logrus"
 )
 
-type RequestsHandler struct {
+type ChronoHandler struct {
 	Repository *repository.Repository
 }
 
-func NewRequestsHandler(r *repository.Repository) *RequestsHandler {
-	return &RequestsHandler{Repository: r}
+func NewRequestsHandler(r *repository.Repository) *ChronoHandler {
+	return &ChronoHandler{Repository: r}
 }
 
-func (h *RequestsHandler) RegisterRoutes(api *gin.RouterGroup) {
-	requests := api.Group("/requests")
+func (h *ChronoHandler) RegisterRoutes(api *gin.RouterGroup) {
+	requests := api.Group("/chrono")
 	{
 		requests.GET("/cart", h.GetCartBadge)
 		requests.GET("", h.ListRequests)
@@ -42,7 +42,7 @@ func (h *RequestsHandler) RegisterRoutes(api *gin.RouterGroup) {
 	}
 }
 
-func (h *RequestsHandler) ListRequests(ctx *gin.Context) {
+func (h *ChronoHandler) ListRequests(ctx *gin.Context) {
 	requests, err := h.Repository.ListRequests()
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Не удалось получить заявки"})
@@ -51,7 +51,7 @@ func (h *RequestsHandler) ListRequests(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, requests)
 }
 
-func (h *RequestsHandler) GetCartBadge(ctx *gin.Context) {
+func (h *ChronoHandler) GetCartBadge(ctx *gin.Context) {
 	req, err := h.Repository.GetCart()
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка получения корзины"})
@@ -60,7 +60,7 @@ func (h *RequestsHandler) GetCartBadge(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, req)
 }
 
-func (h *RequestsHandler) AddLayerToDraft(ctx *gin.Context) {
+func (h *ChronoHandler) AddLayerToDraft(ctx *gin.Context) {
 	layerID, _ := strconv.Atoi(ctx.Param("layer_id"))
 	req, err := h.Repository.AddLayerToOpenRequest(uint(layerID))
 	if err != nil {
@@ -70,7 +70,7 @@ func (h *RequestsHandler) AddLayerToDraft(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, req)
 }
 
-func (h *RequestsHandler) GetRequest(ctx *gin.Context) {
+func (h *ChronoHandler) GetRequest(ctx *gin.Context) {
 	id, _ := strconv.Atoi(ctx.Param("id"))
 	req, err := h.Repository.GetRequest(uint(id))
 	if err != nil {
@@ -80,7 +80,7 @@ func (h *RequestsHandler) GetRequest(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, req)
 }
 
-func (h *RequestsHandler) UpdateRequest(ctx *gin.Context) {
+func (h *ChronoHandler) UpdateRequest(ctx *gin.Context) {
 	id, _ := strconv.Atoi(ctx.Param("id"))
 	var input models.ResearchRequest
 	if err := ctx.ShouldBindJSON(&input); err != nil {
@@ -94,7 +94,7 @@ func (h *RequestsHandler) UpdateRequest(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, input)
 }
 
-func (h *RequestsHandler) DeleteRequest(ctx *gin.Context) {
+func (h *ChronoHandler) DeleteRequest(ctx *gin.Context) {
 	id, _ := strconv.Atoi(ctx.Param("id"))
 	if err := h.Repository.DeleteRequest(uint(id)); err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Не удалось удалить заявку"})
@@ -103,7 +103,7 @@ func (h *RequestsHandler) DeleteRequest(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{"status": "удалена"})
 }
 
-func (h *RequestsHandler) FormRequest(ctx *gin.Context) {
+func (h *ChronoHandler) FormRequest(ctx *gin.Context) {
 	id, _ := strconv.Atoi(ctx.Param("id"))
 	if err := h.Repository.FormRequest(uint(id)); err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Не удалось сформировать заявку"})
@@ -112,7 +112,7 @@ func (h *RequestsHandler) FormRequest(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{"status": "сформирована"})
 }
 
-func (h *RequestsHandler) ResolveRequest(ctx *gin.Context) {
+func (h *ChronoHandler) ResolveRequest(ctx *gin.Context) {
 	id, _ := strconv.Atoi(ctx.Param("id"))
 	if err := h.Repository.ResolveRequest(uint(id)); err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Не удалось рассмотреть заявку"})
@@ -121,7 +121,7 @@ func (h *RequestsHandler) ResolveRequest(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{"status": "рассмотрена"})
 }
 
-func (h *RequestsHandler) UpdateRequestLayer(ctx *gin.Context) {
+func (h *ChronoHandler) UpdateRequestLayer(ctx *gin.Context) {
 	reqID, _ := strconv.Atoi(ctx.Param("id"))
 	layerID, _ := strconv.Atoi(ctx.Param("layer_id"))
 
@@ -142,7 +142,7 @@ func (h *RequestsHandler) UpdateRequestLayer(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{"status": "обновлено"})
 }
 
-func (h *RequestsHandler) RemoveRequestLayer(ctx *gin.Context) {
+func (h *ChronoHandler) RemoveRequestLayer(ctx *gin.Context) {
 	reqID, _ := strconv.Atoi(ctx.Param("id"))
 	layerID, _ := strconv.Atoi(ctx.Param("layer_id"))
 	err := h.Repository.RemoveLayerFromRequest(uint(reqID), uint(layerID))

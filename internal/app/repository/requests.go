@@ -70,10 +70,6 @@ func (r *RequestsRepository) UpdateRequest(id uint, input *models.ResearchReques
 	return r.db.Model(&models.ResearchRequest{}).Where("id = ?", id).Updates(input).Error
 }
 
-func (r *RequestsRepository) DeleteRequest(id uint) error {
-	return r.db.Delete(&models.ResearchRequest{}, id).Error
-}
-
 func (r *RequestsRepository) FormRequest(id uint) error {
 	return r.db.Model(&models.ResearchRequest{}).Where("id = ?", id).Update("status", "formed").Error
 }
@@ -147,16 +143,46 @@ func (r *Repository) UpdateRequest(id uint, input *models.ResearchRequest) error
 	return r.db.Model(&models.ResearchRequest{}).Where("id = ?", id).Updates(input).Error
 }
 
-func (r *Repository) DeleteRequest(id uint) error {
-	return r.db.Delete(&models.ResearchRequest{}, id).Error
-}
-
 func (r *Repository) FormRequest(id uint) error {
-	return r.db.Model(&models.ResearchRequest{}).Where("id = ?", id).Update("status", "рассматривается").Error
+	var req models.ResearchRequest
+	err := r.db.First(&req, id).Error
+	if err != nil {
+		return err
+	}
+
+	if req.Status != "черновик" {
+		return errors.New("можно формировать только заявки в статусе черновик")
+	}
+
+	return r.db.Model(&req).Update("status", "рассматривается").Error
 }
 
 func (r *Repository) ResolveRequest(id uint) error {
-	return r.db.Model(&models.ResearchRequest{}).Where("id = ?", id).Update("status", "рассмотрен").Error
+	var req models.ResearchRequest
+	err := r.db.First(&req, id).Error
+	if err != nil {
+		return err
+	}
+
+	if req.Status != "рассматривается" {
+		return errors.New("можно рассматривать только заявки в статусе рассматривается")
+	}
+
+	return r.db.Model(&req).Update("status", "рассмотрен").Error
+}
+
+func (r *Repository) DeleteRequest(id uint) error {
+	var req models.ResearchRequest
+	err := r.db.First(&req, id).Error
+	if err != nil {
+		return err
+	}
+
+	if req.Status != "черновик" {
+		return errors.New("можно удалять только заявки в статусе черновик")
+	}
+
+	return r.db.Delete(&models.ResearchRequest{}, id).Error
 }
 
 func (r *Repository) UpdateRequestLayer(reqID, layerID uint, comment *string) error {
