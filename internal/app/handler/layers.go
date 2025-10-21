@@ -44,7 +44,7 @@ func (h *LayersHandler) RegisterRoutes(api *gin.RouterGroup) {
 
 // 1. GET /api/layers - список с фильтрацией
 func (h *LayersHandler) GetLayers(ctx *gin.Context) {
-	query := ctx.Query("interval")
+	query := ctx.Query("query")
 
 	layers, err := h.Repository.GetLayers(query)
 	if err != nil {

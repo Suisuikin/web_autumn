@@ -2,37 +2,53 @@ package handler
 
 import (
 	"net/http"
+	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"golang.org/x/crypto/bcrypt"
+	"rip/internal/app/middleware"
 	"rip/internal/app/models"
 	"rip/internal/app/repository"
+	"rip/internal/app/service"
+	"rip/internal/pkg/redis"
 )
 
 type UsersHandler struct {
 	Repository *repository.Repository
+	JWTService *service.JWTService
+	Redis      *redis.Client
 }
 
-func NewUsersHandler(r *repository.Repository) *UsersHandler {
-	return &UsersHandler{Repository: r}
-}
-
-func (h *UsersHandler) RegisterRoutes(api *gin.RouterGroup) {
-	users := api.Group("/users")
-	{
-		users.POST("/register", h.Register)    // 17
-		users.POST("/login", h.Login)          // 18
-		users.POST("/logout", h.Logout)        // 19
-		users.GET("/profile", h.GetProfile)    // 20
-		users.PUT("/profile", h.UpdateProfile) // 21
+func NewUsersHandler(r *repository.Repository, jwtService *service.JWTService, redisClient *redis.Client) *UsersHandler {
+	return &UsersHandler{
+		Repository: r,
+		JWTService: jwtService,
+		Redis:      redisClient,
 	}
 }
 
-// 17. POST /api/users/register
+func (h *UsersHandler) RegisterRoutes(api *gin.RouterGroup, authMW *middleware.AuthMiddleware) {
+	users := api.Group("/users")
+	{
+		users.POST("/register", h.Register)
+		users.POST("/login", h.Login)
+		users.POST("/logout", authMW.AuthRequired(), h.Logout)
+		users.GET("/profile", authMW.AuthRequired(), h.GetProfile)
+		users.PUT("/profile", authMW.AuthRequired(), h.UpdateProfile)
+	}
+}
+
 func (h *UsersHandler) Register(ctx *gin.Context) {
 	var input models.RegisterUserDTO
 	if err := ctx.ShouldBindJSON(&input); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Неверные данные"})
+		return
+	}
+
+	_, err := h.Repository.GetUserByUsername(input.Username)
+	if err == nil {
+		ctx.JSON(http.StatusConflict, gin.H{"error": "Пользователь с таким именем уже существует"})
 		return
 	}
 
@@ -48,7 +64,6 @@ func (h *UsersHandler) Register(ctx *gin.Context) {
 		IsActive:     true,
 		IsModerator:  false,
 	}
-
 	if input.Email != nil {
 		user.Email = *input.Email
 	}
@@ -61,10 +76,10 @@ func (h *UsersHandler) Register(ctx *gin.Context) {
 	ctx.JSON(http.StatusCreated, gin.H{
 		"id":       user.ID,
 		"username": user.Username,
+		"message":  "Пользователь успешно зарегистрирован",
 	})
 }
 
-// 18. POST /api/users/login
 func (h *UsersHandler) Login(ctx *gin.Context) {
 	var input models.LoginDTO
 	if err := ctx.ShouldBindJSON(&input); err != nil {
@@ -78,33 +93,68 @@ func (h *UsersHandler) Login(ctx *gin.Context) {
 		return
 	}
 
+	if !user.IsActive {
+		ctx.JSON(http.StatusForbidden, gin.H{"error": "Учетная запись деактивирована"})
+		return
+	}
+
 	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(input.Password)); err != nil {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "Неверные учетные данные"})
 		return
 	}
 
-	// TODO: Создать сессию или JWT токен
+	// Генерируем JWT токен
+	token, err := h.JWTService.GenerateToken(user.ID, user.Username, user.IsModerator)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка генерации токена"})
+		return
+	}
 
 	ctx.JSON(http.StatusOK, gin.H{
-		"id":           user.ID,
-		"username":     user.Username,
-		"is_moderator": user.IsModerator,
+		"access_token": token,
+		"token_type":   "Bearer",
+		"user": gin.H{
+			"id":           user.ID,
+			"username":     user.Username,
+			"is_moderator": user.IsModerator,
+		},
 	})
 }
 
-// 19. POST /api/users/logout
 func (h *UsersHandler) Logout(ctx *gin.Context) {
-	// TODO: Удалить сессию или инвалидировать JWT
+	authHeader := ctx.GetHeader("Authorization")
+	if authHeader == "" {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Токен не предоставлен"})
+		return
+	}
 
-	ctx.JSON(http.StatusOK, gin.H{"status": "logged out"})
+	token := strings.TrimPrefix(authHeader, "Bearer ")
+
+	claims, err := h.JWTService.ValidateToken(token)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Невалидный токен"})
+		return
+	}
+
+	expiresIn := time.Until(time.Unix(claims.ExpiresAt, 0))
+	if expiresIn > 0 {
+		if err := h.Redis.AddToBlacklist(ctx.Request.Context(), token, expiresIn); err != nil {
+			ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка выхода"})
+			return
+		}
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"message": "Успешный выход"})
 }
 
-// 20. GET /api/users/profile
 func (h *UsersHandler) GetProfile(ctx *gin.Context) {
-	// TODO: Получить userID из сессии/JWT
-	userID := uint(1)
+	claims, err := middleware.GetCurrentUser(ctx)
+	if err != nil {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "Пользователь не авторизован"})
+		return
+	}
 
-	user, err := h.Repository.GetUserByID(userID)
+	user, err := h.Repository.GetUserByID(claims.UserID)
 	if err != nil {
 		ctx.JSON(http.StatusNotFound, gin.H{"error": "Пользователь не найден"})
 		return
@@ -118,10 +168,12 @@ func (h *UsersHandler) GetProfile(ctx *gin.Context) {
 	})
 }
 
-// 21. PUT /api/users/profile
 func (h *UsersHandler) UpdateProfile(ctx *gin.Context) {
-	// TODO: Получить userID из сессии/JWT
-	userID := uint(1)
+	claims, err := middleware.GetCurrentUser(ctx)
+	if err != nil {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "Пользователь не авторизован"})
+		return
+	}
 
 	var input models.UpdateUserDTO
 	if err := ctx.ShouldBindJSON(&input); err != nil {
@@ -129,7 +181,7 @@ func (h *UsersHandler) UpdateProfile(ctx *gin.Context) {
 		return
 	}
 
-	user, err := h.Repository.GetUserByID(userID)
+	user, err := h.Repository.GetUserByID(claims.UserID)
 	if err != nil {
 		ctx.JSON(http.StatusNotFound, gin.H{"error": "Пользователь не найден"})
 		return
@@ -150,10 +202,10 @@ func (h *UsersHandler) UpdateProfile(ctx *gin.Context) {
 		user.PasswordHash = string(hashedPassword)
 	}
 
-	if err := h.Repository.UpdateUser(userID, user); err != nil {
+	if err := h.Repository.UpdateUser(claims.UserID, user); err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка обновления"})
 		return
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{"status": "updated"})
+	ctx.JSON(http.StatusOK, gin.H{"message": "Профиль обновлен"})
 }

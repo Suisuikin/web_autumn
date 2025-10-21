@@ -10,13 +10,16 @@ import (
 
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
+	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
+	redisClient "rip/internal/pkg/redis"
 )
 
 type Repository struct {
 	db     *gorm.DB
 	Minio  *minio.Client
 	Bucket string
+	Redis  *redis.Client
 }
 
 func (r *Repository) GetLayers(query string) ([]models.Layer, error) {
@@ -133,19 +136,6 @@ func (r *Repository) CreateDraftRequest(userID uint) (*models.ResearchRequest, e
 	}
 	err := r.db.Create(&req).Error
 	return &req, err
-}
-
-func (r *Repository) UpdateRequest(id uint, dto *models.UpdateRequestDTO) error {
-	updates := make(map[string]interface{})
-
-	if dto.TextForAnalysis != nil {
-		updates["text_for_analysis"] = *dto.TextForAnalysis
-	}
-	if dto.Purpose != nil {
-		updates["purpose"] = *dto.Purpose
-	}
-
-	return r.db.Model(&models.ResearchRequest{}).Where("id = ? AND status = ?", id, "draft").Updates(updates).Error
 }
 
 func (r *Repository) FormRequest(id uint, userID uint) error {
@@ -350,4 +340,53 @@ func InitMinio() (*minio.Client, string) {
 	}
 
 	return client, bucket
+}
+
+func (r *Repository) BlacklistToken(token string, expiration time.Duration) error {
+	return redisClient.BlacklistToken(r.Redis, token, expiration)
+}
+
+func (r *Repository) IsTokenBlacklisted(token string) (bool, error) {
+	return redisClient.IsTokenBlacklisted(r.Redis, token)
+}
+
+func (r *Repository) GetRequestByIDWithLayers(id uint, userID uint, isModerator bool) (*models.ResearchRequest, map[uint]models.RequestLayer, error) {
+	var req models.ResearchRequest
+	db := r.db
+
+	if !isModerator {
+		db = db.Where("user_id = ?", userID)
+	}
+
+	db = db.Where("status != ?", "deleted")
+
+	err := db.Preload("Layers").First(&req, id).Error
+	if err != nil {
+		return nil, nil, err
+	}
+
+	var requestLayers []models.RequestLayer
+	r.db.Where("research_request_id = ?", id).Find(&requestLayers)
+
+	rlMap := make(map[uint]models.RequestLayer)
+	for _, rl := range requestLayers {
+		rlMap[rl.LayerID] = rl
+	}
+
+	return &req, rlMap, nil
+}
+
+func (r *Repository) UpdateRequest(id uint, userID uint, dto *models.UpdateRequestDTO) error {
+	updates := make(map[string]interface{})
+
+	if dto.TextForAnalysis != nil {
+		updates["text_for_analysis"] = *dto.TextForAnalysis
+	}
+	if dto.Purpose != nil {
+		updates["purpose"] = *dto.Purpose
+	}
+
+	return r.db.Model(&models.ResearchRequest{}).
+		Where("id = ? AND user_id = ? AND status = ?", id, userID, "draft").
+		Updates(updates).Error
 }
