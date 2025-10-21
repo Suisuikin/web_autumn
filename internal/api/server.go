@@ -3,11 +3,11 @@ package api
 import (
 	"log"
 	"path/filepath"
+
+	"github.com/gin-gonic/gin"
 	"rip/internal/app/handler"
 	"rip/internal/app/repository"
 	"rip/internal/pkg/database"
-
-	"github.com/gin-gonic/gin"
 )
 
 func StartServer() {
@@ -20,9 +20,11 @@ func StartServer() {
 
 	layersHandler := handler.NewLayersHandler(repo, repo.Minio, repo.Bucket)
 	requestsHandler := handler.NewRequestsHandler(repo)
-	userHandler := handler.NewUsersHandler(repo)
+	requestLayersHandler := handler.NewRequestLayersHandler(repo)
+	usersHandler := handler.NewUsersHandler(repo)
 
 	r := gin.Default()
+
 	r.Static("/resources", "./resources")
 	r.LoadHTMLGlob(filepath.Join("templates", "*.html"))
 
@@ -30,7 +32,8 @@ func StartServer() {
 
 	layersHandler.RegisterRoutes(apiGroup)
 	requestsHandler.RegisterRoutes(apiGroup)
-	userHandler.RegisterRoutes(apiGroup)
+	requestLayersHandler.RegisterRoutes(apiGroup)
+	usersHandler.RegisterRoutes(apiGroup)
 
 	log.Println("Server started on :8080")
 	r.Run(":8080")

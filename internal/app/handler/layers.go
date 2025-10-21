@@ -11,7 +11,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/minio/minio-go/v7"
 	"github.com/sirupsen/logrus"
-
 	"rip/internal/app/models"
 	"rip/internal/app/repository"
 )
@@ -33,36 +32,39 @@ func NewLayersHandler(r *repository.Repository, minioClient *minio.Client, bucke
 func (h *LayersHandler) RegisterRoutes(api *gin.RouterGroup) {
 	layers := api.Group("/layers")
 	{
-		layers.GET("", h.GetLayers)
-		layers.GET("/:id", h.GetLayerByID)
-		layers.POST("", h.CreateLayer)
-		layers.PUT("/:id", h.UpdateLayer)
-		layers.DELETE("/:id", h.DeleteLayer)
-		layers.POST("/:id/image", h.UploadLayerImage)
+		layers.GET("", h.GetLayers)                        // 1
+		layers.GET("/:id", h.GetLayerByID)                 // 2
+		layers.POST("", h.CreateLayer)                     // 3
+		layers.PUT("/:id", h.UpdateLayer)                  // 4
+		layers.DELETE("/:id", h.DeleteLayer)               // 5
+		layers.POST("/:id/image", h.UploadLayerImage)      // 6
+		layers.POST("/:id/add-to-request", h.AddToRequest) // 7
 	}
 }
 
+// 1. GET /api/layers - список с фильтрацией
 func (h *LayersHandler) GetLayers(ctx *gin.Context) {
-	interval := ctx.Query("interval")
+	query := ctx.Query("interval")
 
-	layers, err := h.Repository.GetLayers(interval)
+	layers, err := h.Repository.GetLayers(query)
 	if err != nil {
-		logrus.Error(err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+
 	ctx.JSON(http.StatusOK, layers)
 }
 
+// 2. GET /api/layers/:id - один слой
 func (h *LayersHandler) GetLayerByID(ctx *gin.Context) {
 	id, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Неверный ID слоя"})
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Неверный ID"})
 		return
 	}
 
 	layer, err := h.Repository.GetLayerByID(uint(id))
-	if err != nil || layer == nil {
+	if err != nil {
 		ctx.JSON(http.StatusNotFound, gin.H{"error": "Слой не найден"})
 		return
 	}
@@ -70,6 +72,7 @@ func (h *LayersHandler) GetLayerByID(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, layer)
 }
 
+// 3. POST /api/layers - создание
 func (h *LayersHandler) CreateLayer(ctx *gin.Context) {
 	var input models.CreateLayerDTO
 	if err := ctx.ShouldBindJSON(&input); err != nil {
@@ -82,26 +85,23 @@ func (h *LayersHandler) CreateLayer(ctx *gin.Context) {
 		Description: input.Description,
 		FromYear:    input.FromYear,
 		ToYear:      input.ToYear,
-		Status:      "active",
+		Words:       input.Words,
 		ImageURL:    input.ImageURL,
 	}
 
-	if input.Status != "" {
-		layer.Status = input.Status
-	}
-
 	if err := h.Repository.CreateLayer(&layer); err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при создании слоя"})
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка создания"})
 		return
 	}
 
 	ctx.JSON(http.StatusCreated, layer)
 }
 
+// 4. PUT /api/layers/:id - изменение
 func (h *LayersHandler) UpdateLayer(ctx *gin.Context) {
 	id, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Неверный ID слоя"})
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Неверный ID"})
 		return
 	}
 
@@ -112,7 +112,7 @@ func (h *LayersHandler) UpdateLayer(ctx *gin.Context) {
 	}
 
 	layer, err := h.Repository.GetLayerByID(uint(id))
-	if err != nil || layer == nil {
+	if err != nil {
 		ctx.JSON(http.StatusNotFound, gin.H{"error": "Слой не найден"})
 		return
 	}
@@ -129,45 +129,47 @@ func (h *LayersHandler) UpdateLayer(ctx *gin.Context) {
 	if input.ToYear != nil {
 		layer.ToYear = *input.ToYear
 	}
-	if input.Status != nil {
-		layer.Status = *input.Status
+	if input.Words != nil {
+		layer.Words = *input.Words
 	}
 	if input.ImageURL != nil {
 		layer.ImageURL = input.ImageURL
 	}
 
 	if err := h.Repository.UpdateLayer(uint(id), layer); err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при обновлении слоя"})
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка обновления"})
 		return
 	}
 
 	ctx.JSON(http.StatusOK, layer)
 }
 
+// 5. DELETE /api/layers/:id - удаление
 func (h *LayersHandler) DeleteLayer(ctx *gin.Context) {
 	id, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Неверный ID слоя"})
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Неверный ID"})
 		return
 	}
 
 	if err := h.Repository.DeleteLayer(uint(id)); err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при удалении слоя"})
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка удаления"})
 		return
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{"status": "удален"})
+	ctx.JSON(http.StatusOK, gin.H{"status": "deleted"})
 }
 
+// 6. POST /api/layers/:id/image - загрузка картинки
 func (h *LayersHandler) UploadLayerImage(ctx *gin.Context) {
 	id, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Неверный ID слоя"})
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Неверный ID"})
 		return
 	}
 
 	layer, err := h.Repository.GetLayerByID(uint(id))
-	if err != nil || layer == nil {
+	if err != nil {
 		ctx.JSON(http.StatusNotFound, gin.H{"error": "Слой не найден"})
 		return
 	}
@@ -188,7 +190,7 @@ func (h *LayersHandler) UploadLayerImage(ctx *gin.Context) {
 	ext := filepath.Ext(file.Filename)
 	objectName := fmt.Sprintf("%d_%d%s", id, time.Now().UnixNano(), ext)
 
-	uploadInfo, err := h.Minio.PutObject(
+	_, err = h.Minio.PutObject(
 		context.Background(),
 		h.Bucket,
 		objectName,
@@ -198,7 +200,7 @@ func (h *LayersHandler) UploadLayerImage(ctx *gin.Context) {
 	)
 	if err != nil {
 		logrus.Error(err)
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Не удалось загрузить файл в MinIO"})
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Не удалось загрузить файл"})
 		return
 	}
 
@@ -206,13 +208,31 @@ func (h *LayersHandler) UploadLayerImage(ctx *gin.Context) {
 	layer.ImageURL = &imageURL
 
 	if err := h.Repository.UpdateLayer(uint(id), layer); err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Не удалось обновить слой"})
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Не удалось обновить"})
 		return
 	}
 
 	ctx.JSON(http.StatusOK, gin.H{
 		"layer_id": id,
-		"file":     uploadInfo.Key,
 		"url":      imageURL,
 	})
+}
+
+// 7. POST /api/layers/:id/add-to-request - добавление в заявку
+func (h *LayersHandler) AddToRequest(ctx *gin.Context) {
+	layerID, err := strconv.Atoi(ctx.Param("id"))
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Неверный ID"})
+		return
+	}
+
+	// TODO: Получить userID из сессии/JWT
+	userID := uint(1)
+
+	if err := h.Repository.AddLayerToRequest(userID, uint(layerID)); err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка добавления"})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"status": "added"})
 }

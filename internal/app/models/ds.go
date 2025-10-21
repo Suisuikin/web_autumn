@@ -18,6 +18,7 @@ type Layer struct {
 	ImageURL    *string `gorm:"size:2048" json:"image_url,omitempty"`
 	FromYear    int     `gorm:"not null" json:"from_year"`
 	ToYear      int     `gorm:"not null" json:"to_year"`
+	Words       string  `gorm:"type:text;not null" json:"words"`
 	Status      string  `gorm:"size:50;not null;default:'active'" json:"status"`
 }
 
@@ -28,14 +29,25 @@ type ResearchRequest struct {
 	FormedAt    *time.Time `json:"formed_at,omitempty"`
 	CompletedAt *time.Time `json:"completed_at,omitempty"`
 	UserID      uint       `gorm:"not null" json:"user_id"`
-	ModeratorID uint       `gorm:"not null" json:" moderator_id"`
-	User        User       `json:"user,omitempty"`
-	Notes       *string    `json:"notes,omitempty"`
-	Layers      []Layer    `gorm:"many2many:request_layers;" json:"layers,omitempty"`
+	ModeratorID *uint      `json:"moderator_id,omitempty"`
+
+	TextForAnalysis *string `gorm:"type:text" json:"text_for_analysis,omitempty"`
+	Purpose         *string `gorm:"type:text" json:"purpose,omitempty"`
+
+	ResultFromYear *int `json:"result_from_year,omitempty"`
+	ResultToYear   *int `json:"result_to_year,omitempty"`
+	MatchedLayers  *int `json:"matched_layers,omitempty"`
+
+	Layers []Layer `gorm:"many2many:request_layers;" json:"layers,omitempty"`
 }
 
 type RequestLayer struct {
 	ResearchRequestID uint    `gorm:"primaryKey"`
 	LayerID           uint    `gorm:"primaryKey"`
+	MatchCount        int     `gorm:"default:0" json:"match_count"`
 	Comment           *string `gorm:"size:1024" json:"comment,omitempty"`
+}
+
+func (RequestLayer) TableName() string {
+	return "request_layers"
 }

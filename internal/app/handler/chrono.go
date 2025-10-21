@@ -2,164 +2,163 @@ package handler
 
 import (
 	"net/http"
-	"rip/internal/app/models"
-	"rip/internal/app/repository"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
-	_ "github.com/sirupsen/logrus"
+	"rip/internal/app/models"
+	"rip/internal/app/repository"
 )
 
-type ChronoHandler struct {
+type RequestsHandler struct {
 	Repository *repository.Repository
 }
 
-func NewRequestsHandler(r *repository.Repository) *ChronoHandler {
-	return &ChronoHandler{Repository: r}
+func NewRequestsHandler(r *repository.Repository) *RequestsHandler {
+	return &RequestsHandler{Repository: r}
 }
 
-func (h *ChronoHandler) RegisterRoutes(api *gin.RouterGroup) {
+func (h *RequestsHandler) RegisterRoutes(api *gin.RouterGroup) {
 	requests := api.Group("/chrono")
 	{
-		requests.GET("/cart", h.GetCartBadge)
-		requests.GET("", h.ListRequests)
-		requests.POST("/draft/layers/:layer_id", h.AddLayerToDraft)
-
-		requestByID := requests.Group("/:id")
-		{
-			requestByID.GET("", h.GetRequest)
-			requestByID.PUT("", h.UpdateRequest)
-			requestByID.DELETE("", h.DeleteRequest)
-			requestByID.PUT("/form", h.FormRequest)
-			requestByID.PUT("/resolve", h.ResolveRequest)
-
-			layersInRequest := requestByID.Group("/layers/:layer_id")
-			{
-				layersInRequest.PUT("", h.UpdateRequestLayer)
-				layersInRequest.DELETE("", h.RemoveRequestLayer)
-			}
-		}
+		requests.GET("/cart-icon", h.GetCartIcon)        // 8
+		requests.GET("", h.GetRequests)                  // 9
+		requests.GET("/:id", h.GetRequestByID)           // 10
+		requests.PUT("/:id", h.UpdateRequest)            // 11
+		requests.PUT("/:id/form", h.FormRequest)         // 12
+		requests.PUT("/:id/complete", h.CompleteRequest) // 13
+		requests.DELETE("/:id", h.DeleteRequest)         // 14
 	}
 }
 
-func (h *ChronoHandler) ListRequests(ctx *gin.Context) {
-	status := ctx.Query("status")
-	from := ctx.Query("from")
-	to := ctx.Query("to")
+// 8. GET /api/requests/cart-icon - иконка корзины
+func (h *RequestsHandler) GetCartIcon(ctx *gin.Context) {
+	// TODO: Получить userID из сессии/JWT
+	userID := uint(1)
 
-	requests, err := h.Repository.ListRequests(status, from, to)
+	icon, err := h.Repository.GetCartIcon(userID)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Не удалось получить заявки"})
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+
+	ctx.JSON(http.StatusOK, icon)
+}
+
+// 9. GET /api/requests - список заявок
+func (h *RequestsHandler) GetRequests(ctx *gin.Context) {
+	// TODO: Получить userID и isModerator из сессии/JWT
+	userID := uint(1)
+	isModerator := false
+
+	status := ctx.Query("status")
+	dateFrom := ctx.Query("date_from")
+	dateTo := ctx.Query("date_to")
+
+	requests, err := h.Repository.GetRequests(userID, isModerator, status, dateFrom, dateTo)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
 	ctx.JSON(http.StatusOK, requests)
 }
 
-func (h *ChronoHandler) GetCartBadge(ctx *gin.Context) {
-	req, err := h.Repository.GetCart()
+// 10. GET /api/requests/:id - одна заявка
+func (h *RequestsHandler) GetRequestByID(ctx *gin.Context) {
+	id, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка получения корзины"})
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Неверный ID"})
 		return
 	}
-	ctx.JSON(http.StatusOK, req)
-}
 
-func (h *ChronoHandler) AddLayerToDraft(ctx *gin.Context) {
-	layerID, _ := strconv.Atoi(ctx.Param("layer_id"))
-	req, err := h.Repository.AddLayerToOpenRequest(uint(layerID))
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Не удалось добавить слой"})
-		return
-	}
-	ctx.JSON(http.StatusOK, req)
-}
+	// TODO: Получить userID и isModerator из сессии/JWT
+	userID := uint(1)
+	isModerator := false
 
-func (h *ChronoHandler) GetRequest(ctx *gin.Context) {
-	id, _ := strconv.Atoi(ctx.Param("id"))
-	req, err := h.Repository.GetRequest(uint(id))
+	request, err := h.Repository.GetRequestByID(uint(id), userID, isModerator)
 	if err != nil {
 		ctx.JSON(http.StatusNotFound, gin.H{"error": "Заявка не найдена"})
 		return
 	}
-	ctx.JSON(http.StatusOK, req)
+
+	ctx.JSON(http.StatusOK, request)
 }
 
-func (h *ChronoHandler) UpdateRequest(ctx *gin.Context) {
+// 11. PUT /api/requests/:id - изменение полей
+func (h *RequestsHandler) UpdateRequest(ctx *gin.Context) {
 	id, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"status": "not ok", "error": "Неверный ID"})
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Неверный ID"})
 		return
 	}
 
-	var input models.ResearchRequest
-	if err := ctx.ShouldBindJSON(&input); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"status": "not ok", "error": "Неверные данные"})
-		return
-	}
-
-	if err := h.Repository.UpdateRequest(uint(id), &input); err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"status": "not ok", "error": "Не удалось обновить заявку"})
-		return
-	}
-
-	ctx.JSON(http.StatusOK, gin.H{"status": "ok"})
-}
-
-func (h *ChronoHandler) DeleteRequest(ctx *gin.Context) {
-	id, _ := strconv.Atoi(ctx.Param("id"))
-	if err := h.Repository.DeleteRequest(uint(id)); err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Не удалось удалить заявку"})
-		return
-	}
-	ctx.JSON(http.StatusOK, gin.H{"status": "удалена"})
-}
-
-func (h *ChronoHandler) FormRequest(ctx *gin.Context) {
-	id, _ := strconv.Atoi(ctx.Param("id"))
-	if err := h.Repository.FormRequest(uint(id)); err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Не удалось сформировать заявку"})
-		return
-	}
-	ctx.JSON(http.StatusOK, gin.H{"status": "сформирована"})
-}
-
-func (h *ChronoHandler) ResolveRequest(ctx *gin.Context) {
-	id, _ := strconv.Atoi(ctx.Param("id"))
-	if err := h.Repository.ResolveRequest(uint(id)); err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Не удалось рассмотреть заявку"})
-		return
-	}
-	ctx.JSON(http.StatusOK, gin.H{"status": "рассмотрена"})
-}
-
-func (h *ChronoHandler) UpdateRequestLayer(ctx *gin.Context) {
-	reqID, _ := strconv.Atoi(ctx.Param("id"))
-	layerID, _ := strconv.Atoi(ctx.Param("layer_id"))
-
-	var input struct {
-		Comment *string `json:"comment"`
-	}
+	var input models.UpdateRequestDTO
 	if err := ctx.ShouldBindJSON(&input); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Неверные данные"})
 		return
 	}
 
-	err := h.Repository.UpdateRequestLayer(uint(reqID), uint(layerID), input.Comment)
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Не удалось обновить слой"})
+	if err := h.Repository.UpdateRequest(uint(id), &input); err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка обновления"})
 		return
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{"status": "обновлено"})
+	ctx.JSON(http.StatusOK, gin.H{"status": "updated"})
 }
 
-func (h *ChronoHandler) RemoveRequestLayer(ctx *gin.Context) {
-	reqID, _ := strconv.Atoi(ctx.Param("id"))
-	layerID, _ := strconv.Atoi(ctx.Param("layer_id"))
-	err := h.Repository.RemoveLayerFromRequest(uint(reqID), uint(layerID))
+// 12. PUT /api/requests/:id/form - сформировать
+func (h *RequestsHandler) FormRequest(ctx *gin.Context) {
+	id, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Не удалось удалить слой"})
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Неверный ID"})
 		return
 	}
-	ctx.JSON(http.StatusOK, gin.H{"status": "удален"})
+
+	// TODO: Получить userID из сессии/JWT
+	userID := uint(1)
+
+	if err := h.Repository.FormRequest(uint(id), userID); err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка формирования"})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"status": "formed"})
+}
+
+// 13. PUT /api/requests/:id/complete - завершить
+func (h *RequestsHandler) CompleteRequest(ctx *gin.Context) {
+	id, err := strconv.Atoi(ctx.Param("id"))
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Неверный ID"})
+		return
+	}
+
+	// TODO: Получить moderatorID из сессии/JWT
+	moderatorID := uint(2)
+
+	if err := h.Repository.CompleteRequest(uint(id), moderatorID); err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"status": "completed"})
+}
+
+// 14. DELETE /api/requests/:id - удалить
+func (h *RequestsHandler) DeleteRequest(ctx *gin.Context) {
+	id, err := strconv.Atoi(ctx.Param("id"))
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Неверный ID"})
+		return
+	}
+
+	// TODO: Получить userID из сессии/JWT
+	userID := uint(1)
+
+	if err := h.Repository.DeleteRequest(uint(id), userID); err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"status": "deleted"})
 }
