@@ -50,6 +50,6 @@ type LoginDTO struct {
 }
 
 type CartIconDTO struct {
-	RequestID *uint `json:"request_id,omitempty"`
+	RequestID *uint `json:"chrono_id,omitempty"`
 	Count     int   `json:"count"`
 }

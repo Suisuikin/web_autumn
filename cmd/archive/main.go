@@ -10,7 +10,7 @@ import (
 
 // @title Chrono Research Service API
 // @version 1.0
-// @description API для системы хронологического анализа исторических слоев с поддержкой авторизации через JWT
+// @description API для системы хронологического анализа исторических слоев
 // @termsOfService http://swagger.io/terms/
 
 // @contact.name API Support

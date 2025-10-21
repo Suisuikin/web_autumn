@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"path/filepath"
+	"rip/internal/app/middleware"
 	"strconv"
 	"time"
 
@@ -313,8 +314,11 @@ func (h *LayersHandler) AddToRequest(ctx *gin.Context) {
 		return
 	}
 
-	// TODO: Получить userID из сессии/JWT
-	userID := uint(1)
+	userID, err := middleware.GetUserID(ctx)
+	if err != nil {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "Требуется авторизация"})
+		return
+	}
 
 	if err := h.Repository.AddLayerToRequest(userID, uint(layerID)); err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка добавления"})

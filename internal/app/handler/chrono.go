@@ -44,7 +44,6 @@ func (h *RequestsHandler) RegisterRoutes(api *gin.RouterGroup) {
 func (h *RequestsHandler) GetCartIcon(ctx *gin.Context) {
 	userID, err := middleware.GetUserID(ctx)
 	if err != nil {
-		// Если не авторизован, возвращаем пустую корзину
 		ctx.JSON(http.StatusOK, &models.CartIconDTO{RequestID: nil, Count: 0})
 		return
 	}
@@ -236,10 +235,22 @@ func (h *RequestsHandler) CompleteRequest(ctx *gin.Context) {
 		return
 	}
 
+	isModerator, err := middleware.GetIsModerator(ctx)
+	if err != nil {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	if !isModerator {
+		ctx.JSON(http.StatusForbidden, gin.H{"error": "Forbidden: только модераторы могут завершать заявки"})
+		return
+	}
+
 	if err := h.Repository.CompleteRequest(uint(id), moderatorID); err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+
 	ctx.JSON(http.StatusOK, gin.H{"status": "completed"})
 }
 

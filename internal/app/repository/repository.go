@@ -81,7 +81,7 @@ func (r *Repository) GetCartIcon(userID uint) (*models.CartIconDTO, error) {
 }
 
 func (r *Repository) GetRequests(userID uint, isModerator bool, status, dateFrom, dateTo string) ([]models.ResearchRequest, error) {
-	db := r.db.Where("status NOT IN (?)", []string{"draft", "deleted"})
+	db := r.db.Where("status != ?", "deleted")
 
 	if !isModerator {
 		db = db.Where("user_id = ?", userID)
@@ -96,7 +96,7 @@ func (r *Repository) GetRequests(userID uint, isModerator bool, status, dateFrom
 	}
 
 	var requests []models.ResearchRequest
-	err := db.Find(&requests).Error
+	err := db.Order("created_at DESC").Find(&requests).Error
 
 	for i := range requests {
 		var matchedCount int64
