@@ -25,7 +25,19 @@ func (h *RequestLayersHandler) RegisterRoutes(api *gin.RouterGroup) {
 	}
 }
 
-// 15. DELETE /api/request-layers/:request_id/:layer_id
+// RemoveLayerFromRequest godoc
+// @Summary Удалить слой из заявки
+// @Description Удаление связи между заявкой и слоем
+// @Tags Связи заявок и слоев
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param request_id path int true "ID заявки"
+// @Param layer_id path int true "ID слоя"
+// @Success 200 {object} map[string]string "Слой удален из заявки"
+// @Failure 400 {object} map[string]string "Неверный ID"
+// @Failure 500 {object} map[string]string "Ошибка удаления"
+// @Router /request-layers/{request_id}/{layer_id} [delete]
 func (h *RequestLayersHandler) RemoveLayerFromRequest(ctx *gin.Context) {
 	requestID, err := strconv.Atoi(ctx.Param("request_id"))
 	if err != nil {
@@ -47,7 +59,20 @@ func (h *RequestLayersHandler) RemoveLayerFromRequest(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{"status": "removed"})
 }
 
-// 16. PUT /api/request-layers/:request_id/:layer_id
+// UpdateLayerComment godoc
+// @Summary Обновить комментарий к слою в заявке
+// @Description Обновление дополнительной информации о слое в заявке
+// @Tags Связи заявок и слоев
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param request_id path int true "ID заявки"
+// @Param layer_id path int true "ID слоя"
+// @Param comment body models.UpdateLayerCommentDTO true "Данные комментария"
+// @Success 200 {object} map[string]string "Комментарий обновлен"
+// @Failure 400 {object} map[string]string "Неверные данные"
+// @Failure 500 {object} map[string]string "Ошибка обновления"
+// @Router /request-layers/{request_id}/{layer_id} [put]
 func (h *RequestLayersHandler) UpdateLayerComment(ctx *gin.Context) {
 	requestID, err := strconv.Atoi(ctx.Param("request_id"))
 	if err != nil {

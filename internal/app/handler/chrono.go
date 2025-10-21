@@ -31,9 +31,17 @@ func (h *RequestsHandler) RegisterRoutes(api *gin.RouterGroup) {
 	}
 }
 
-// 8. GET /api/chrono/cart-icon - иконка корзины
+// GetCartIcon godoc
+// @Summary Получить иконку корзины
+// @Description Возвращает информацию о текущей заявке пользователя (корзине)
+// @Tags Заявки
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {object} models.CartIconDTO "Информация о корзине"
+// @Failure 500 {object} map[string]string "Внутренняя ошибка"
+// @Router /chrono/cart-icon [get]
 func (h *RequestsHandler) GetCartIcon(ctx *gin.Context) {
-	// Пытаемся получить userID, если пользователь авторизован
 	userID, err := middleware.GetUserID(ctx)
 	if err != nil {
 		// Если не авторизован, возвращаем пустую корзину
@@ -49,7 +57,20 @@ func (h *RequestsHandler) GetCartIcon(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, icon)
 }
 
-// 9. GET /api/chrono - список заявок
+// GetRequests godoc
+// @Summary Получить список заявок
+// @Description Возвращает список заявок текущего пользователя (или всех для модератора)
+// @Tags Заявки
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param status query string false "Фильтр по статусу"
+// @Param date_from query string false "Дата от (YYYY-MM-DD)"
+// @Param date_to query string false "Дата до (YYYY-MM-DD)"
+// @Success 200 {array} models.ResearchRequest "Список заявок"
+// @Failure 401 {object} map[string]string "Требуется авторизация"
+// @Failure 500 {object} map[string]string "Внутренняя ошибка"
+// @Router /chrono [get]
 func (h *RequestsHandler) GetRequests(ctx *gin.Context) {
 	userID, err := middleware.GetUserID(ctx)
 	if err != nil {
@@ -75,7 +96,19 @@ func (h *RequestsHandler) GetRequests(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, requests)
 }
 
-// 10. GET /api/chrono/:id - одна заявка
+// GetRequestByID godoc
+// @Summary Получить заявку по ID
+// @Description Возвращает подробную информацию о заявке со всеми слоями
+// @Tags Заявки
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param id path int true "ID заявки"
+// @Success 200 {object} models.ResearchRequest "Данные заявки"
+// @Failure 400 {object} map[string]string "Неверный ID"
+// @Failure 401 {object} map[string]string "Требуется авторизация"
+// @Failure 404 {object} map[string]string "Заявка не найдена"
+// @Router /chrono/{id} [get]
 func (h *RequestsHandler) GetRequestByID(ctx *gin.Context) {
 	id, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil {
@@ -103,7 +136,20 @@ func (h *RequestsHandler) GetRequestByID(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, request)
 }
 
-// 11. PUT /api/chrono/:id - изменение полей
+// UpdateRequest godoc
+// @Summary Обновить заявку
+// @Description Обновление полей заявки (только в статусе draft)
+// @Tags Заявки
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param id path int true "ID заявки"
+// @Param request body models.UpdateRequestDTO true "Данные для обновления"
+// @Success 200 {object} map[string]string "Заявка обновлена"
+// @Failure 400 {object} map[string]string "Неверные данные"
+// @Failure 401 {object} map[string]string "Требуется авторизация"
+// @Failure 500 {object} map[string]string "Ошибка обновления"
+// @Router /chrono/{id} [put]
 func (h *RequestsHandler) UpdateRequest(ctx *gin.Context) {
 	id, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil {
@@ -111,7 +157,6 @@ func (h *RequestsHandler) UpdateRequest(ctx *gin.Context) {
 		return
 	}
 
-	// Получаем userID из контекста
 	userID, err := middleware.GetUserID(ctx)
 	if err != nil {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
@@ -124,7 +169,6 @@ func (h *RequestsHandler) UpdateRequest(ctx *gin.Context) {
 		return
 	}
 
-	// Передаём все 3 аргумента: id, userID, dto
 	if err := h.Repository.UpdateRequest(uint(id), userID, &input); err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка обновления"})
 		return
@@ -132,7 +176,19 @@ func (h *RequestsHandler) UpdateRequest(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{"status": "updated"})
 }
 
-// 12. PUT /api/chrono/:id/form - сформировать
+// FormRequest godoc
+// @Summary Сформировать заявку
+// @Description Перевод заявки из статуса draft в formed
+// @Tags Заявки
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param id path int true "ID заявки"
+// @Success 200 {object} map[string]string "Заявка сформирована"
+// @Failure 400 {object} map[string]string "Неверный ID"
+// @Failure 401 {object} map[string]string "Требуется авторизация"
+// @Failure 500 {object} map[string]string "Ошибка формирования"
+// @Router /chrono/{id}/form [put]
 func (h *RequestsHandler) FormRequest(ctx *gin.Context) {
 	id, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil {
@@ -153,7 +209,20 @@ func (h *RequestsHandler) FormRequest(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{"status": "formed"})
 }
 
-// 13. PUT /api/chrono/:id/complete - завершить
+// CompleteRequest godoc
+// @Summary Завершить заявку
+// @Description Завершение заявки с расчетом совпадений (только для модераторов)
+// @Tags Заявки
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param id path int true "ID заявки"
+// @Success 200 {object} map[string]string "Заявка завершена"
+// @Failure 400 {object} map[string]string "Неверный ID"
+// @Failure 401 {object} map[string]string "Требуется авторизация"
+// @Failure 403 {object} map[string]string "Доступ запрещен"
+// @Failure 500 {object} map[string]string "Ошибка завершения"
+// @Router /chrono/{id}/complete [put]
 func (h *RequestsHandler) CompleteRequest(ctx *gin.Context) {
 	id, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil {
@@ -174,7 +243,19 @@ func (h *RequestsHandler) CompleteRequest(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{"status": "completed"})
 }
 
-// 14. DELETE /api/chrono/:id - удалить
+// DeleteRequest godoc
+// @Summary Удалить заявку
+// @Description Логическое удаление заявки (только в статусе draft)
+// @Tags Заявки
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param id path int true "ID заявки"
+// @Success 200 {object} map[string]string "Заявка удалена"
+// @Failure 400 {object} map[string]string "Неверный ID"
+// @Failure 401 {object} map[string]string "Требуется авторизация"
+// @Failure 500 {object} map[string]string "Ошибка удаления"
+// @Router /chrono/{id} [delete]
 func (h *RequestsHandler) DeleteRequest(ctx *gin.Context) {
 	id, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil {

@@ -39,6 +39,18 @@ func (h *UsersHandler) RegisterRoutes(api *gin.RouterGroup, authMW *middleware.A
 	}
 }
 
+// Register godoc
+// @Summary Регистрация нового пользователя
+// @Description Создание нового пользователя в системе
+// @Tags Аутентификация
+// @Accept json
+// @Produce json
+// @Param user body models.RegisterUserDTO true "Данные для регистрации"
+// @Success 201 {object} map[string]interface{} "Пользователь создан"
+// @Failure 400 {object} map[string]string "Неверные данные"
+// @Failure 409 {object} map[string]string "Пользователь уже существует"
+// @Failure 500 {object} map[string]string "Внутренняя ошибка"
+// @Router /users/register [post]
 func (h *UsersHandler) Register(ctx *gin.Context) {
 	var input models.RegisterUserDTO
 	if err := ctx.ShouldBindJSON(&input); err != nil {
@@ -80,6 +92,18 @@ func (h *UsersHandler) Register(ctx *gin.Context) {
 	})
 }
 
+// Login godoc
+// @Summary Аутентификация пользователя
+// @Description Вход в систему с получением JWT токена
+// @Tags Аутентификация
+// @Accept json
+// @Produce json
+// @Param credentials body models.LoginDTO true "Учетные данные"
+// @Success 200 {object} map[string]interface{} "Успешная аутентификация"
+// @Failure 400 {object} map[string]string "Неверные данные"
+// @Failure 401 {object} map[string]string "Неверные учетные данные"
+// @Failure 403 {object} map[string]string "Учетная запись деактивирована"
+// @Router /users/login [post]
 func (h *UsersHandler) Login(ctx *gin.Context) {
 	var input models.LoginDTO
 	if err := ctx.ShouldBindJSON(&input); err != nil {
@@ -121,6 +145,18 @@ func (h *UsersHandler) Login(ctx *gin.Context) {
 	})
 }
 
+// Logout godoc
+// @Summary Выход из системы
+// @Description Добавление JWT токена в черный список
+// @Tags Аутентификация
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {object} map[string]string "Успешный выход"
+// @Failure 400 {object} map[string]string "Токен не предоставлен"
+// @Failure 401 {object} map[string]string "Невалидный токен"
+// @Failure 500 {object} map[string]string "Ошибка выхода"
+// @Router /users/logout [post]
 func (h *UsersHandler) Logout(ctx *gin.Context) {
 	authHeader := ctx.GetHeader("Authorization")
 	if authHeader == "" {
@@ -147,6 +183,17 @@ func (h *UsersHandler) Logout(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{"message": "Успешный выход"})
 }
 
+// GetProfile godoc
+// @Summary Получить профиль текущего пользователя
+// @Description Возвращает информацию о текущем авторизованном пользователе
+// @Tags Пользователи
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {object} map[string]interface{} "Профиль пользователя"
+// @Failure 401 {object} map[string]string "Пользователь не авторизован"
+// @Failure 404 {object} map[string]string "Пользователь не найден"
+// @Router /users/profile [get]
 func (h *UsersHandler) GetProfile(ctx *gin.Context) {
 	claims, err := middleware.GetCurrentUser(ctx)
 	if err != nil {
@@ -168,6 +215,20 @@ func (h *UsersHandler) GetProfile(ctx *gin.Context) {
 	})
 }
 
+// UpdateProfile godoc
+// @Summary Обновить профиль пользователя
+// @Description Обновление данных профиля текущего пользователя
+// @Tags Пользователи
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param profile body models.UpdateUserDTO true "Данные для обновления"
+// @Success 200 {object} map[string]string "Профиль обновлен"
+// @Failure 400 {object} map[string]string "Неверные данные"
+// @Failure 401 {object} map[string]string "Пользователь не авторизован"
+// @Failure 404 {object} map[string]string "Пользователь не найден"
+// @Failure 500 {object} map[string]string "Ошибка обновления"
+// @Router /users/profile [put]
 func (h *UsersHandler) UpdateProfile(ctx *gin.Context) {
 	claims, err := middleware.GetCurrentUser(ctx)
 	if err != nil {

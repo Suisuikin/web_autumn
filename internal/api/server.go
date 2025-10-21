@@ -5,6 +5,8 @@ import (
 	"path/filepath"
 
 	"github.com/gin-gonic/gin"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 	"rip/internal/app/handler"
 	"rip/internal/app/middleware"
 	"rip/internal/app/repository"
@@ -61,6 +63,8 @@ func StartServer() {
 
 	// Регистрируем роуты
 	usersHandler.RegisterRoutes(apiGroup, authMW)
+
+	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	// Layers - публичное чтение, изменение только для модераторов
 	layersGroup := apiGroup.Group("/layers")

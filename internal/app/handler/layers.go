@@ -42,7 +42,16 @@ func (h *LayersHandler) RegisterRoutes(api *gin.RouterGroup) {
 	}
 }
 
-// 1. GET /api/layers - список с фильтрацией
+// GetLayers godoc
+// @Summary Получить список слоев
+// @Description Возвращает список всех активных исторических слоев с возможностью фильтрации
+// @Tags Слои (услуги)
+// @Accept json
+// @Produce json
+// @Param query query string false "Поиск по названию"
+// @Success 200 {array} models.Layer "Список слоев"
+// @Failure 500 {object} map[string]string "Внутренняя ошибка"
+// @Router /layers [get]
 func (h *LayersHandler) GetLayers(ctx *gin.Context) {
 	query := ctx.Query("query")
 
@@ -55,7 +64,17 @@ func (h *LayersHandler) GetLayers(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, layers)
 }
 
-// 2. GET /api/layers/:id - один слой
+// GetLayerByID godoc
+// @Summary Получить слой по ID
+// @Description Возвращает подробную информацию об одном историческом слое
+// @Tags Слои (услуги)
+// @Accept json
+// @Produce json
+// @Param id path int true "ID слоя"
+// @Success 200 {object} models.Layer "Данные слоя"
+// @Failure 400 {object} map[string]string "Неверный ID"
+// @Failure 404 {object} map[string]string "Слой не найден"
+// @Router /layers/{id} [get]
 func (h *LayersHandler) GetLayerByID(ctx *gin.Context) {
 	id, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil {
@@ -72,7 +91,20 @@ func (h *LayersHandler) GetLayerByID(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, layer)
 }
 
-// 3. POST /api/layers - создание
+// CreateLayer godoc
+// @Summary Создать новый слой
+// @Description Создание нового исторического слоя (только для модераторов)
+// @Tags Слои (услуги)
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param layer body models.CreateLayerDTO true "Данные слоя"
+// @Success 201 {object} models.Layer "Слой создан"
+// @Failure 400 {object} map[string]string "Неверные данные"
+// @Failure 401 {object} map[string]string "Требуется авторизация"
+// @Failure 403 {object} map[string]string "Доступ запрещен"
+// @Failure 500 {object} map[string]string "Ошибка создания"
+// @Router /layers [post]
 func (h *LayersHandler) CreateLayer(ctx *gin.Context) {
 	var input models.CreateLayerDTO
 	if err := ctx.ShouldBindJSON(&input); err != nil {
@@ -97,7 +129,22 @@ func (h *LayersHandler) CreateLayer(ctx *gin.Context) {
 	ctx.JSON(http.StatusCreated, layer)
 }
 
-// 4. PUT /api/layers/:id - изменение
+// UpdateLayer godoc
+// @Summary Обновить слой
+// @Description Обновление данных исторического слоя (только для модераторов)
+// @Tags Слои (услуги)
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param id path int true "ID слоя"
+// @Param layer body models.UpdateLayerDTO true "Данные для обновления"
+// @Success 200 {object} models.Layer "Слой обновлен"
+// @Failure 400 {object} map[string]string "Неверные данные"
+// @Failure 401 {object} map[string]string "Требуется авторизация"
+// @Failure 403 {object} map[string]string "Доступ запрещен"
+// @Failure 404 {object} map[string]string "Слой не найден"
+// @Failure 500 {object} map[string]string "Ошибка обновления"
+// @Router /layers/{id} [put]
 func (h *LayersHandler) UpdateLayer(ctx *gin.Context) {
 	id, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil {
@@ -144,7 +191,20 @@ func (h *LayersHandler) UpdateLayer(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, layer)
 }
 
-// 5. DELETE /api/layers/:id - удаление
+// DeleteLayer godoc
+// @Summary Удалить слой
+// @Description Логическое удаление исторического слоя (только для модераторов)
+// @Tags Слои (услуги)
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param id path int true "ID слоя"
+// @Success 200 {object} map[string]string "Слой удален"
+// @Failure 400 {object} map[string]string "Неверный ID"
+// @Failure 401 {object} map[string]string "Требуется авторизация"
+// @Failure 403 {object} map[string]string "Доступ запрещен"
+// @Failure 500 {object} map[string]string "Ошибка удаления"
+// @Router /layers/{id} [delete]
 func (h *LayersHandler) DeleteLayer(ctx *gin.Context) {
 	id, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil {
@@ -160,7 +220,22 @@ func (h *LayersHandler) DeleteLayer(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{"status": "deleted"})
 }
 
-// 6. POST /api/layers/:id/image - загрузка картинки
+// UploadLayerImage godoc
+// @Summary Загрузить изображение для слоя
+// @Description Загрузка изображения в MinIO и привязка к слою (только для модераторов)
+// @Tags Слои (услуги)
+// @Accept multipart/form-data
+// @Produce json
+// @Security BearerAuth
+// @Param id path int true "ID слоя"
+// @Param image formData file true "Файл изображения"
+// @Success 200 {object} map[string]interface{} "Изображение загружено"
+// @Failure 400 {object} map[string]string "Неверный ID или файл не найден"
+// @Failure 401 {object} map[string]string "Требуется авторизация"
+// @Failure 403 {object} map[string]string "Доступ запрещен"
+// @Failure 404 {object} map[string]string "Слой не найден"
+// @Failure 500 {object} map[string]string "Ошибка загрузки"
+// @Router /layers/{id}/image [post]
 func (h *LayersHandler) UploadLayerImage(ctx *gin.Context) {
 	id, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil {
@@ -218,7 +293,19 @@ func (h *LayersHandler) UploadLayerImage(ctx *gin.Context) {
 	})
 }
 
-// 7. POST /api/layers/:id/add-to-request - добавление в заявку
+// AddToRequest godoc
+// @Summary Добавить слой в заявку
+// @Description Добавление исторического слоя в текущую заявку пользователя (корзину)
+// @Tags Слои (услуги)
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param id path int true "ID слоя"
+// @Success 200 {object} map[string]string "Слой добавлен в заявку"
+// @Failure 400 {object} map[string]string "Неверный ID"
+// @Failure 401 {object} map[string]string "Требуется авторизация"
+// @Failure 500 {object} map[string]string "Ошибка добавления"
+// @Router /layers/{id}/add-to-request [post]
 func (h *LayersHandler) AddToRequest(ctx *gin.Context) {
 	layerID, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil {
