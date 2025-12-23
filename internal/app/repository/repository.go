@@ -13,6 +13,9 @@ import (
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 	redisClient "rip/internal/pkg/redis"
+	"encoding/json"
+    "net/http"
+    "bytes"
 )
 
 type Repository struct {
@@ -21,6 +24,69 @@ type Repository struct {
 	Bucket string
 	Redis  *redis.Client
 }
+
+func (r *Repository) SendToAsyncService(requestID uint) error {
+    // 1. Получаем заявку из БД (с текстом анализа!)
+    var req models.ResearchRequest
+    // Важно: берем заявку даже если она уже completed
+    err := r.db.Where("id = ?", requestID).First(&req).Error
+    if err != nil {
+        return err
+    }
+
+    if req.TextForAnalysis == nil || *req.TextForAnalysis == "" {
+        log.Printf("⚠️ Skip async calc for ReqID=%d: Text is empty", requestID)
+        return nil // Не ошибка, просто нечего считать
+    }
+
+    // 2. Формируем DTO для Python (структура должна совпадать с Python Pydantic model)
+    payload := map[string]interface{}{
+        "research_request_id": req.ID,
+        "auth_token":          "111517", // Секретный ключ
+        "text_for_analysis":   *req.TextForAnalysis,
+        "purpose":             *req.Purpose, // Может быть nil, json.Marshal обработает как null
+        "user_id":             req.UserID,
+    }
+
+    jsonData, err := json.Marshal(payload)
+    if err != nil {
+        return err
+    }
+
+    asyncURL := "http://localhost:9001/calculate-chrono"
+
+    client := &http.Client{
+        Timeout: 20 * time.Second, // Даем питону время на подумать
+    }
+
+    resp, err := client.Post(asyncURL, "application/json", bytes.NewBuffer(jsonData))
+    if err != nil {
+        return err
+    }
+    defer resp.Body.Close()
+
+    if resp.StatusCode != 200 {
+        return errors.New("async service returned non-200 status: " + resp.Status)
+    }
+
+    return nil
+}
+
+func (r *Repository) GetChronoDataForAsync(id uint) (*models.AsyncChronoData, error) {
+    var req models.ResearchRequest
+    err := r.db.Where("id = ? AND status IN (?, ?)", id, "formed", "completed").First(&req).Error
+    if err != nil {
+        return nil, err
+    }
+
+    return &models.AsyncChronoData{
+        ResearchRequestID: req.ID,
+        TextForAnalysis:   req.TextForAnalysis,
+        Purpose:           req.Purpose,
+        UserID:            req.UserID,
+    }, nil
+}
+
 
 func (r *Repository) GetLayers(query string) ([]models.Layer, error) {
 	var layers []models.Layer
@@ -81,34 +147,35 @@ func (r *Repository) GetCartIcon(userID uint) (*models.CartIconDTO, error) {
 }
 
 func (r *Repository) GetRequests(userID uint, isModerator bool, status, dateFrom, dateTo string) ([]models.ResearchRequest, error) {
-	db := r.db.Where("status != ?", "deleted")
+    db := r.db.Where("status IN (?, ?)", "completed", "formed")
 
-	if !isModerator {
-		db = db.Where("user_id = ?", userID)
-	}
+    if !isModerator {
+        db = db.Where("user_id = ?", userID)
+    }
 
-	if status != "" {
-		db = db.Where("status = ?", status)
-	}
+    if status != "" {
+        db = db.Where("status = ?", status)
+    }
 
-	if dateFrom != "" && dateTo != "" {
-		db = db.Where("formed_at BETWEEN ? AND ?", dateFrom, dateTo)
-	}
+    if dateFrom != "" && dateTo != "" {
+        db = db.Where("formed_at BETWEEN ? AND ?", dateFrom, dateTo)
+    }
 
-	var requests []models.ResearchRequest
-	err := db.Order("created_at DESC").Find(&requests).Error
+    var requests []models.ResearchRequest
+    err := db.Order("created_at DESC").Find(&requests).Error
 
-	for i := range requests {
-		var matchedCount int64
-		r.db.Model(&models.RequestLayer{}).
-			Where("research_request_id = ?", requests[i].ID).
-			Count(&matchedCount)
-		count := int(matchedCount)
-		requests[i].MatchedLayers = &count
-	}
+    for i := range requests {
+        var matchedCount int64
+        r.db.Model(&models.RequestLayer{}).
+            Where("research_request_id = ?", requests[i].ID).
+            Count(&matchedCount)
+        count := int(matchedCount)
+        requests[i].MatchedLayers = &count
+    }
 
-	return requests, err
+    return requests, err
 }
+
 
 func (r *Repository) GetRequestByID(id uint, userID uint, isModerator bool) (*models.ResearchRequest, error) {
 	var req models.ResearchRequest
@@ -154,7 +221,7 @@ func (r *Repository) CompleteRequest(id uint, moderatorID uint) error {
 		return err
 	}
 
-	if req.Status != "formed" {
+	if req.Status != "formed" && req.Status != "completed" {
 		return errors.New("заявка должна быть в статусе 'formed'")
 	}
 
@@ -226,6 +293,33 @@ func (r *Repository) CompleteRequest(id uint, moderatorID uint) error {
 
 	return r.db.Model(&models.ResearchRequest{}).Where("id = ?", id).Updates(updates).Error
 }
+
+func (r *Repository) UpdateAsyncResult(requestID uint, dto *models.AsyncResultDTO) error {
+    log.Printf("🔄 Обновляем БД для ID=%d", requestID)
+
+    updates := map[string]interface{}{}
+    if dto.ResultFromYear != nil {
+        updates["result_from_year"] = *dto.ResultFromYear
+    }
+    if dto.ResultToYear != nil {
+        updates["result_to_year"] = *dto.ResultToYear
+    }
+    if dto.MatchedLayers != nil {
+        updates["matched_layers"] = *dto.MatchedLayers
+    }
+
+    result := r.db.Model(&models.ResearchRequest{}).
+        Where("id = ?", requestID).
+        Updates(updates)
+
+    if result.Error != nil {
+        return result.Error
+    }
+
+    log.Printf("✅ БД обновлена: %d строк", result.RowsAffected)
+    return nil
+}
+
 
 func (r *Repository) DeleteRequest(id uint, userID uint) error {
 	query := `UPDATE research_requests SET status = 'deleted' WHERE id = ? AND user_id = ? AND status = 'draft'`

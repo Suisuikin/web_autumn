@@ -8,6 +8,9 @@ import (
 	"rip/internal/app/middleware"
 	"rip/internal/app/models"
 	"rip/internal/app/repository"
+	"errors"
+	"gorm.io/gorm"
+	"log"
 )
 
 type RequestsHandler struct {
@@ -28,8 +31,83 @@ func (h *RequestsHandler) RegisterRoutes(api *gin.RouterGroup) {
 		requests.PUT("/:id/form", h.FormRequest)         // 12
 		requests.PUT("/:id/complete", h.CompleteRequest) // 13
 		requests.DELETE("/:id", h.DeleteRequest)         // 14
-	}
+        requests.POST("/async-result", h.UpdateAsyncResult) // async
+    }
 }
+
+// Запуск асинхронного расчета (вызывается из CompleteRequest)
+// GetChronoForAsync godoc
+// @Summary Получить данные Chrono для асинхронного расчета
+// @Description Передает полные данные заявки асинхронному сервису
+// @Tags Заявки
+// @Accept json
+// @Produce json
+// @Param request body models.AsyncChronoRequest true "ID заявки"
+// @Success 200 {object} models.AsyncChronoData "Данные для расчета"
+// @Failure 400 {object} map[string]string "Неверный ID"
+// @Failure 403 {object} map[string]string "Неверный токен"
+// @Failure 404 {object} map[string]string "Заявка не найдена"
+// @Router /chrono/calculate-async [post]
+func (h *RequestsHandler) StartAsyncCalculation(ctx *gin.Context) {
+    var input struct {
+        ResearchRequestID uint   `json:"research_request_id" binding:"required"`
+        AuthToken         string `json:"auth_token"`
+    }
+
+    if err := ctx.ShouldBindJSON(&input); err != nil {
+        ctx.JSON(http.StatusBadRequest, gin.H{"error": "Неверные данные"})
+        return
+    }
+
+    const AUTH_TOKEN = "111517"
+    if input.AuthToken != AUTH_TOKEN {
+        ctx.JSON(http.StatusForbidden, gin.H{"error": "Invalid auth token"})
+        return
+    }
+
+    chronoData, err := h.Repository.GetChronoDataForAsync(input.ResearchRequestID)
+    if err != nil {
+        if errors.Is(err, gorm.ErrRecordNotFound) {
+            ctx.JSON(http.StatusNotFound, gin.H{"error": "Заявка не найдена"})
+            return
+        }
+        ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+        return
+    }
+
+    ctx.JSON(http.StatusOK, chronoData)
+}
+
+func (h *RequestsHandler) UpdateAsyncResult(ctx *gin.Context) {
+    log.Printf("🎯 POST /api/chrono/async-result ПОЛУЧЕН! Method=%s", ctx.Request.Method)
+
+    var input models.AsyncResultDTO
+    if err := ctx.ShouldBindJSON(&input); err != nil {
+        log.Printf("❌ BindJSON ОШИБКА: %v", err)
+        ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON: " + err.Error()})
+        return
+    }
+
+    log.Printf("✅ JSON распарсен: ID=%d, token=%s", input.ResearchRequestID, input.AuthToken)
+
+    const AUTH_TOKEN = "111517"
+    if input.AuthToken != AUTH_TOKEN {
+        log.Printf("❌ Неверный токен: %s", input.AuthToken)
+        ctx.JSON(http.StatusForbidden, gin.H{"error": "Invalid token"})
+        return
+    }
+
+    err := h.Repository.UpdateAsyncResult(input.ResearchRequestID, &input)
+    if err != nil {
+        log.Printf("❌ DB ошибка: %v", err)
+        ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+        return
+    }
+
+    log.Printf("🎉 ✅ Результат сохранен ID=%d", input.ResearchRequestID)
+    ctx.JSON(http.StatusOK, gin.H{"status": "updated", "request_id": input.ResearchRequestID})
+}
+
 
 // GetCartIcon godoc
 // @Summary Получить иконку корзины
@@ -223,36 +301,45 @@ func (h *RequestsHandler) FormRequest(ctx *gin.Context) {
 // @Failure 500 {object} map[string]string "Ошибка завершения"
 // @Router /chrono/{id}/complete [put]
 func (h *RequestsHandler) CompleteRequest(ctx *gin.Context) {
-	id, err := strconv.Atoi(ctx.Param("id"))
-	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Неверный ID"})
-		return
-	}
+    id, err := strconv.Atoi(ctx.Param("id"))
+    if err != nil {
+        ctx.JSON(http.StatusBadRequest, gin.H{"error": "Неверный ID"})
+        return
+    }
 
-	moderatorID, err := middleware.GetUserID(ctx)
-	if err != nil {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
-		return
-	}
+    moderatorID, err := middleware.GetUserID(ctx)
+    if err != nil {
+        ctx.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+        return
+    }
 
-	isModerator, err := middleware.GetIsModerator(ctx)
-	if err != nil {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
-		return
-	}
+    isModerator, err := middleware.GetIsModerator(ctx)
+    if err != nil || !isModerator {
+        ctx.JSON(http.StatusForbidden, gin.H{"error": "Forbidden: только модераторы"})
+        return
+    }
 
-	if !isModerator {
-		ctx.JSON(http.StatusForbidden, gin.H{"error": "Forbidden: только модераторы могут завершать заявки"})
-		return
-	}
+    if err := h.Repository.CompleteRequest(uint(id), moderatorID); err != nil {
+        ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+        return
+    }
 
-	if err := h.Repository.CompleteRequest(uint(id), moderatorID); err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
+    go func(requestID uint) {
+        err := h.Repository.SendToAsyncService(requestID)
+        if err != nil {
+            log.Printf("❌ ERROR: Failed to trigger async calculation for ReqID=%d: %v", requestID, err)
+        } else {
+            log.Printf("🚀 SUCCESS: Triggered async calculation for ReqID=%d", requestID)
+        }
+    }(uint(id))
 
-	ctx.JSON(http.StatusOK, gin.H{"status": "completed"})
+    ctx.JSON(http.StatusOK, gin.H{
+        "status": "completed",
+        "message": "Заявка переведена в статус completed. Запущен научный анализ.",
+        "async_started": true,
+    })
 }
+
 
 // DeleteRequest godoc
 // @Summary Удалить заявку
